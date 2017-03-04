@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func expectLinkUpdate(ch <-chan netlink.LinkUpdate) {
+func notify(ch <-chan netlink.LinkUpdate) {
 	for {
 		timeout := time.After(time.Minute)
 		select {
@@ -27,7 +27,7 @@ func MonitorLink() {
 	if err := netlink.LinkSubscribe(ch, done); err != nil {
 		log.Fatal(err)
 	}
-	expectLinkUpdate(ch)
+	notify(ch)
 }
 func main() {
 	MonitorLink()
