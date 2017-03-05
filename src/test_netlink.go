@@ -10,11 +10,10 @@ import (
 
 func notify(ch <-chan netlink.LinkUpdate) {
 	for {
-		timeout := time.After(time.Minute)
 		select {
 		case update := <-ch:
 			fmt.Println(update.Link.Attrs().Name, update.Link.Attrs().HardwareAddr, update.IfInfomsg.Flags, syscall.IFF_UP)
-		case <-timeout:
+		case <-time.After(1 * time.Minute):
 			fmt.Println("timeout")
 		}
 	}
