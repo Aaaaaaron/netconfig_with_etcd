@@ -40,16 +40,11 @@ type LinkAttrs struct {
 
 func GetLinkDetailsInJSON() []string {
 	var links []string
-	linkList, err := LinkList()
-	if err != nil {
-		log.Fatal(err)
-	}
+	linkList := getLinkList()
 
 	for _, link := range linkList {
 		la := NewLinkAttrs(link)
-		data, err := json.MarshalIndent(la, "", "    ")
-
-		//data, err := json.Marshal(la)
+		data, err := json.MarshalIndent(la, "", "\t")
 		if err != nil {
 			log.Fatalf("JSON marshaling failed: %s", err)
 		}
@@ -63,8 +58,12 @@ func GetLinkDetailsInJSON() []string {
 	return links
 }
 
-func LinkList() ([]netlink.Link, error) {
-	return netlink.LinkList()
+func getLinkList() ([]netlink.Link) {
+	linkList, err := netlink.LinkList()
+	if err != nil {
+		log.Fatalf("get link list from netlink failed: %s", err)
+	}
+	return linkList
 }
 
 func NewLinkAttrs(link netlink.Link) (*LinkAttrs) {
