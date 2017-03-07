@@ -28,6 +28,7 @@ func MonitorLink() {
 	}
 	notify(ch)
 }
+
 func main() {
 	MonitorLink()
 }
