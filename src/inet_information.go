@@ -12,14 +12,8 @@ import (
 )
 
 func init() {
-	// Log as JSON instead of the default ASCII formatter.
 	log.SetFormatter(&log.JSONFormatter{})
-
-	// Output to stdout instead of the default stderr
-	// Can be any io.Writer, see below for File example
 	log.SetOutput(os.Stdout)
-
-	// Only log the warning severity or above.
 	log.SetLevel(log.DebugLevel)
 }
 
@@ -74,8 +68,8 @@ func NewLinkAttrs(link netlink.Link) (*LinkAttrs) {
 	la.Id = la.HostId + la.BusInfo
 	la.HostId = getHostId()
 	la.BusInfo = getEthBusInfo(name)
-	la.Name = linkAttrs.Name
-	la.DisplayName = la.Name //need to retrieve from etcd if etcd has, or equals name
+	la.Name = name
+	la.DisplayName = name //need to retrieve from etcd if etcd has, or equals name
 	la.HardwareAddr = linkAttrs.HardwareAddr
 	la.MTU = linkAttrs.MTU
 	la.TxQLen = linkAttrs.TxQLen
