@@ -1,12 +1,19 @@
 package main
 
 import (
-	"fmt"
+	log "github.com/Sirupsen/logrus"
+	"os"
 	"github.com/vishvananda/netlink"
-	"log"
+	"fmt"
 	"syscall"
 	"time"
 )
+
+func init() {
+	log.SetFormatter(&log.JSONFormatter{})
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.DebugLevel)
+}
 
 func notify(ch <-chan netlink.LinkUpdate) {
 	for {
@@ -19,7 +26,7 @@ func notify(ch <-chan netlink.LinkUpdate) {
 	}
 }
 
-func MonitorLink() {
+func MonitorLinks() {
 	ch := make(chan netlink.LinkUpdate)
 	done := make(chan struct{})
 	defer close(done)
@@ -30,5 +37,6 @@ func MonitorLink() {
 }
 
 func main() {
-	MonitorLink()
 }
+
+

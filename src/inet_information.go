@@ -32,6 +32,10 @@ type LinkAttrs struct {
 	BypassId     string
 }
 
+func main() {
+	GetLinkDetailsInJSON()
+}
+
 func GetLinkDetailsInJSON() []string {
 	var links []string
 	linkList := getLinkList()
@@ -96,8 +100,4 @@ func getEthBusInfo(ethName string) string {
 	}
 
 	return busInfo
-}
-
-func main() {
-	GetLinkDetailsInJSON()
 }
