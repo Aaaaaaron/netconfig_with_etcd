@@ -1,4 +1,4 @@
-package proxy
+package ifacemonitor
 
 import (
   "encoding/gob"
