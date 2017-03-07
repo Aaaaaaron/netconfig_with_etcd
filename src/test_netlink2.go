@@ -1,13 +1,27 @@
 package main
 
 import (
-	"fmt"
 	"github.com/vishvananda/netlink"
-	"log"
 	"github.com/safchain/ethtool"
 	"net"
-	//"encoding/json"
+	log "github.com/Sirupsen/logrus"
+	"encoding/json"
+	"math/rand"
+	"strconv"
+	"os"
 )
+
+func init() {
+	// Log as JSON instead of the default ASCII formatter.
+	log.SetFormatter(&log.JSONFormatter{})
+
+	// Output to stdout instead of the default stderr
+	// Can be any io.Writer, see below for File example
+	log.SetOutput(os.Stdout)
+
+	// Only log the warning severity or above.
+	log.SetLevel(log.DebugLevel)
+}
 
 type LinkAttrs struct {
 	Id           string // equals HostId + BusInfo
@@ -24,27 +38,29 @@ type LinkAttrs struct {
 	BypassId     string
 }
 
-func GetLinkDetails() {
-	//var links []*string
+func GetLinkDetailsInJSON() []string {
+	var links []string
 	linkList, err := LinkList()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	for _, link := range linkList {
-		fmt.Print(link)
 		la := NewLinkAttrs(link)
-		fmt.Print(la.Name)
-		//data, err := json.Marshal(la)
-		//if err != nil {
-		//	log.Fatalf("JSON marshaling failed: %s", err)
-		//}
-		//fmt.Printf("%s\n", data)
+		data, err := json.MarshalIndent(la, "", "    ")
 
-		//links = append(links, la)
-		//fmt.Println(linkAttrs.Name, linkAttrs.HardwareAddr, linkAttrs.MTU, linkAttrs.TxQLen, linkAttrs.OperState, linkAttrs.ParentIndex)
+		//data, err := json.Marshal(la)
+		if err != nil {
+			log.Fatalf("JSON marshaling failed: %s", err)
+		}
+
+		log.WithFields(log.Fields{
+			"link JSON数据":data,
+		}).Debug("A group of walrus emerges from the ocean")
+
+		links = append(links, string(data))
 	}
-	//return
+	return links
 }
 
 func LinkList() ([]netlink.Link, error) {
@@ -55,9 +71,10 @@ func NewLinkAttrs(link netlink.Link) (*LinkAttrs) {
 	linkAttrs := link.Attrs()
 	name := linkAttrs.Name
 	la := new(LinkAttrs)
+
+	la.Id = la.HostId + la.BusInfo
 	la.HostId = getHostId()
 	la.BusInfo = getEthBusInfo(name)
-	la.Id = la.HostId + la.BusInfo
 	la.Name = linkAttrs.Name
 	la.DisplayName = la.Name //need to retrieve from etcd if etcd has, or equals name
 	la.HardwareAddr = linkAttrs.HardwareAddr
@@ -66,8 +83,12 @@ func NewLinkAttrs(link netlink.Link) (*LinkAttrs) {
 	la.AdminStat = linkAttrs.OperState //need to retrieve from etcd if etcd has, or equals operState
 	la.OperStat = linkAttrs.OperState
 	la.ParentId = linkAttrs.ParentIndex
-	//la.BypassId=
+	la.BypassId = ""
 	return la
+}
+
+func getHostId() string {
+	return strconv.Itoa(rand.Int())
 }
 
 func getEthBusInfo(ethName string) string {
@@ -78,16 +99,12 @@ func getEthBusInfo(ethName string) string {
 
 	busInfo, err := ethHandle.BusInfo(ethName)
 	if err != nil {
-		busInfo=""
+		busInfo = ""
 	}
 
 	return busInfo
 }
 
-func getHostId() string {
-	return "1"
-}
-
 func main() {
-	GetLinkDetails()
+	GetLinkDetailsInJSON()
 }
