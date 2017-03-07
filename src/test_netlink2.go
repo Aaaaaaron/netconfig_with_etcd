@@ -9,13 +9,11 @@ import (
 	"math/rand"
 	"strconv"
 	"os"
-	"fmt"
 )
 
 func init() {
 	// Log as JSON instead of the default ASCII formatter.
-	//log.SetFormatter(&log.TextFormatter{})
-	log.SetFormatter(new(MyJSONFormatter))
+	log.SetFormatter(&log.JSONFormatter{})
 
 	// Output to stdout instead of the default stderr
 	// Can be any io.Writer, see below for File example
@@ -40,20 +38,6 @@ type LinkAttrs struct {
 	BypassId     string
 }
 
-type MyJSONFormatter struct {
-}
-
-func (f *MyJSONFormatter) Format(entry *log.Entry) ([]byte, error) {
-	// Note this doesn't include Time, Level and Message which are available on
-	// the Entry. Consult `godoc` on information about those fields or read the
-	// source of the official loggers.
-	serialized, err := json.MarshalIndent(entry.Data,"", "    ")
-	if err != nil {
-		return nil, fmt.Errorf("Failed to marshal fields to JSON, %v", err)
-	}
-	return append(serialized, '\n'), nil
-}
-
 func GetLinkDetailsInJSON() []string {
 	var links []string
 	linkList, err := LinkList()
@@ -71,8 +55,8 @@ func GetLinkDetailsInJSON() []string {
 		}
 
 		log.WithFields(log.Fields{
-			"link JSON数据": string(data),
-		}).Debug("插入etcd的link的value值")
+			"link JSON数据": la,
+		}).Debug("插入etcd的link的value值信息")
 
 		links = append(links, string(data))
 	}
