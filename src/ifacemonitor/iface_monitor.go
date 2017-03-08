@@ -1,6 +1,5 @@
 package ifacemonitor
 
-
 import (
 	"syscall"
 	"time"
