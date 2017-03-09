@@ -56,9 +56,9 @@ func GetLinkDetails() cmap.ConcurrentMap {
 		//}).Debug("插入etcd的link的value值信息")
 	}
 	//fmt.Println(LinkMap.MarshalJSON())
-	for key, value := range LinkMap.IterBuffered() {
-		fmt.Println(key)
-		fmt.Println(value)
+	for item:= range LinkMap.IterBuffered() {
+		fmt.Println(item.Key)
+		fmt.Println(item.Val)
 		fmt.Println()
 	}
 	return LinkMap
