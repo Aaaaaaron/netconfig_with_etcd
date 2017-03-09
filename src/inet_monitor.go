@@ -43,7 +43,7 @@ type InterfaceMonitor struct {
 	ifaceAddrs   map[int]set.Set
 }
 
-func New() *InterfaceMonitor {
+func NewInetMonitor() *InterfaceMonitor {
 	// Interface monitor using the real netlink, and resyncing every 10 seconds.
 	resyncTicker := time.NewTicker(10 * time.Second)
 	return NewWithStubs(&netlinkReal{}, resyncTicker.C)

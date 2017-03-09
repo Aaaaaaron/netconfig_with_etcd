@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/vishvananda/netlink"
 	"github.com/safchain/ethtool"
-	"net"
 	log "github.com/Sirupsen/logrus"
 	"encoding/json"
 	//"math/rand"
@@ -21,22 +20,17 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 }
 
-type LinkAttrs struct {
-	Id           string // equals HostId +"_" +BusInfo
-	HostId       string
-	BusInfo      string
-	Name         string
-	DisplayName  string
-	HardwareAddr net.HardwareAddr
-	MTU          int
-	TxQLen       int
-	Statistics   *netlink.LinkStatistics
-	SysStat      netlink.LinkOperState
-	adminStat    netlink.LinkOperState //flags+OperState
+//warpper netlink's Link,add some fields
+type LinkWrapper struct {
+	link        netlink.Link
+	Id          string // equals HostId +"_" +BusInfo
+	HostId      string
+	BusInfo     string
+	DisplayName string // not equals alias
+	SysStat     netlink.LinkOperState
+	adminStat   netlink.LinkOperState //uint8
 	execStat    netlink.LinkOperState
-	ParentId     int
-	MasterId     int
-	BypassId     string
+	BypassId    string
 }
 
 func main() {
@@ -44,11 +38,11 @@ func main() {
 	fmt.Print(LinkMap)
 }
 
-func GetLinkDetails() cmap.ConcurrentMap{
+func GetLinkDetails() cmap.ConcurrentMap {
 	linkList := getLinkList()
 
 	for _, link := range linkList {
-		la := NewLinkAttrs(link)
+		la := NewLink(link)
 		data, err := json.MarshalIndent(la, "", "\t")
 		if err != nil {
 			log.Fatalf("JSON marshaling failed: %s", err)
@@ -57,7 +51,7 @@ func GetLinkDetails() cmap.ConcurrentMap{
 		LinkMap.Set(la.Id, data)
 
 		log.WithFields(log.Fields{
-			"kye":la.Id,
+			"kye":        la.Id,
 			"link value": la,
 		}).Debug("插入etcd的link的value值信息")
 	}
@@ -72,24 +66,20 @@ func getLinkList() ([]netlink.Link) {
 	return linkList
 }
 
-func NewLinkAttrs(link netlink.Link) (*LinkAttrs) {
-	linkAttrs := link.Attrs()
-	name := linkAttrs.Name
-	la := new(LinkAttrs)
+func NewLink(link netlink.Link) (*LinkWrapper) {
+	name := link.Attrs().Name
+	lw := new(LinkWrapper)
 
-	la.Id = GetHostId() + "_" + GetEthBusInfo(name)
-	la.HostId = GetHostId()
-	la.BusInfo = GetEthBusInfo(name)
-	la.Name = name
-	la.DisplayName = name //need to retrieve from etcd if etcd has, or equals name
-	la.HardwareAddr = linkAttrs.HardwareAddr
-	la.MTU = linkAttrs.MTU
-	la.TxQLen = linkAttrs.TxQLen
-	la.SysStat = linkAttrs.OperState //need to retrieve from etcd if etcd has, or equals operState
-	la.adminStat = linkAttrs.OperState
-	la.ParentId = linkAttrs.ParentIndex
-	la.BypassId = ""
-	return la
+	lw.link = link
+	lw.Id = GetHostId() + "_" + GetEthBusInfo(name)
+	lw.HostId = GetHostId()
+	lw.BusInfo = GetEthBusInfo(name)
+	lw.DisplayName = name //need to retrieve from etcd if etcd has, or equals name
+	//lw.SysStat =
+	//lw.AdminStat = linkAttrs.OperState //need to retrieve from etcd if etcd has, or equals SysStat
+	//lw.ExecStat=
+	lw.BypassId = ""
+	return lw
 }
 
 func GetHostId() string {
@@ -100,7 +90,7 @@ func GetHostId() string {
 func GetEthBusInfo(ethName string) string {
 	ethHandle, err := ethtool.NewEthtool()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("can not get ethtoll",err)
 	}
 
 	busInfo, err := ethHandle.BusInfo(ethName)
