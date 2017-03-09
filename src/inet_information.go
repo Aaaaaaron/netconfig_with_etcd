@@ -8,7 +8,6 @@ import (
 	//"strconv"
 	"os"
 	"github.com/orcaman/concurrent-map"
-	"fmt"
 	"net"
 	"encoding/json"
 )
@@ -59,17 +58,12 @@ func GetLinkDetails() cmap.ConcurrentMap {
 		if err != nil {
 			log.Fatalf("JSON marshaling failed: %s", err)
 		}
-
-		fmt.Println(linkWrapper.Attrs)
-		fmt.Println(data)
-		//LinkMap.Set(linkWrapper.Id, data)
-		LinkMap.Set(linkWrapper.Attrs.Id, linkWrapper.Attrs)
-
-		//log.WithFields(log.Fields{
-		//	"kye":        linkWrapper.Attrs.Id,
-		//	"link value": linkWrapper,
-		//	"josn value": data,
-		//}).Debug("插入etcd的link的value值信息")
+		//fmt.Println(string(data))
+		LinkMap.Set(linkWrapper.Attrs.Id, linkWrapper)
+		log.WithFields(log.Fields{
+			"kye":        linkWrapper.Attrs.Id,
+			"link value": string(data),
+		}).Debug("插入etcd的link的value值信息")
 	}
 	return LinkMap
 }
