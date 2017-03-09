@@ -9,6 +9,8 @@ import (
 	"os"
 	"github.com/orcaman/concurrent-map"
 	"fmt"
+	"net"
+	"encoding/json"
 )
 
 var LinkMap = cmap.New()
@@ -19,17 +21,28 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 }
 
-//warpper netlink's Link,add some fields
+//warpper netlink's Link,and attrs add some fields
 type LinkWrapper struct {
-	link        netlink.Link
-	Id          string // equals HostId +"_" +BusInfo
-	HostId      string
-	BusInfo     string
-	DisplayName string // not equals alias
-	SysStat     netlink.LinkOperState
-	adminStat   netlink.LinkOperState //uint8
-	execStat    netlink.LinkOperState
-	BypassId    string
+	link  *netlink.Link
+	attrs *LinkAttrs
+}
+
+type LinkAttrs struct {
+	Id           string // equals HostId +"_" +BusInfo
+	HostId       string
+	BusInfo      string
+	Name         string
+	DisplayName  string // not equals alias
+	HardwareAddr net.HardwareAddr
+	MTU          int
+	TxQLen       int
+	Statistics   *netlink.LinkStatistics
+	AdminStat    netlink.LinkOperState //uint8
+	ExecStat     netlink.LinkOperState
+	SysStat      netlink.LinkOperState
+	ParentIndex  int
+	MasterIndex  int
+	BypassId     string
 }
 
 func main() {
@@ -42,22 +55,23 @@ func GetLinkDetails() cmap.ConcurrentMap {
 
 	for _, link := range linkList {
 		linkWrapper := NewLink(link)
-		//data, err := json.MarshalIndent(linkWrapper, "", "\t")
-		//if err != nil {
-		//	log.Fatalf("JSON marshaling failed: %s", err)
-		//}
+		data, err := json.MarshalIndent(linkWrapper.attrs, "", "\t")
+		if err != nil {
+			log.Fatalf("JSON marshaling failed: %s", err)
+		}
 
 		//LinkMap.Set(linkWrapper.Id, data)
-		LinkMap.Set(linkWrapper.Id, linkWrapper)
+		LinkMap.Set(linkWrapper.attrs.Id, linkWrapper.attrs)
 
-		//log.WithFields(log.Fields{
-		//	"kye":        linkWrapper.Id,
-		//	"link value": linkWrapper,
-		//}).Debug("插入etcd的link的value值信息")
+		log.WithFields(log.Fields{
+			"kye":        linkWrapper.attrs.Id,
+			"link value": linkWrapper,
+			"josn value": data,
+		}).Debug("插入etcd的link的value值信息")
 	}
 	//fmt.Println(LinkMap.MarshalJSON())
-	for item:= range LinkMap.IterBuffered() {
-		fmt.Println(item.Key)
+	for item := range LinkMap.IterBuffered() {
+		fmt.Print("_m_" + item.Key + ":")
 		fmt.Println(item.Val)
 		fmt.Println()
 	}
@@ -76,15 +90,22 @@ func NewLink(link netlink.Link) (*LinkWrapper) {
 	name := link.Attrs().Name
 	lw := new(LinkWrapper)
 
-	lw.link = link
-	lw.Id = GetHostId() + "_" + GetEthBusInfo(name)
-	lw.HostId = GetHostId()
-	lw.BusInfo = GetEthBusInfo(name)
-	lw.DisplayName = name //need to retrieve from etcd if etcd has, or equals name
-	//lw.SysStat =
-	//lw.AdminStat = linkAttrs.OperState //need to retrieve from etcd if etcd has, or equals SysStat
-	//lw.ExecStat=
-	lw.BypassId = ""
+	lw.link = &link
+	lw.attrs.Id = GetHostId() + "_" + GetEthBusInfo(name)
+	lw.attrs.HostId = GetHostId()
+	lw.attrs.BusInfo = GetEthBusInfo(name)
+	lw.attrs.Name = name
+	lw.attrs.DisplayName = name //need to retrieve from etcd if etcd has, or equals name
+	lw.attrs.HardwareAddr = link.Attrs().HardwareAddr
+	lw.attrs.MTU = link.Attrs().MTU
+	lw.attrs.TxQLen = link.Attrs().TxQLen
+	lw.attrs.Statistics = link.Attrs().Statistics
+	lw.attrs.ParentIndex = link.Attrs().ParentIndex
+	lw.attrs.MasterIndex = link.Attrs().MasterIndex
+	//lw.attrs.SysStat =
+	//lw.attrs.AdminStat = linkAttrs.OperState //need to retrieve from etcd if etcd has, or equals SysStat
+	//lw.attrs.ExecStat=
+	lw.attrs.BypassId = ""
 	return lw
 }
 
