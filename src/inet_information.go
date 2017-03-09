@@ -24,7 +24,7 @@ func init() {
 //warpper netlink's Link,and Attrs add some fields
 type LinkWrapper struct {
 	link  netlink.Link
-	Attrs *LinkAttrs
+	Attrs LinkAttrs
 }
 
 type LinkAttrs struct {
@@ -61,6 +61,7 @@ func GetLinkDetails() cmap.ConcurrentMap {
 		}
 
 		fmt.Println(linkWrapper.Attrs)
+		fmt.Println(data)
 		//LinkMap.Set(linkWrapper.Id, data)
 		LinkMap.Set(linkWrapper.Attrs.Id, linkWrapper.Attrs)
 
@@ -86,7 +87,6 @@ func NewLink(link netlink.Link) (*LinkWrapper) {
 	lw := new(LinkWrapper)
 
 	lw.link = link
-	lw.Attrs = new(LinkAttrs)
 	lw.Attrs.Id = GetHostId() + "_" + GetEthBusInfo(name)
 	lw.Attrs.HostId = GetHostId()
 	lw.Attrs.BusInfo = GetEthBusInfo(name)
