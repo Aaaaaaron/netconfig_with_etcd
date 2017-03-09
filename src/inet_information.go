@@ -4,7 +4,6 @@ import (
 	"github.com/vishvananda/netlink"
 	"github.com/safchain/ethtool"
 	log "github.com/Sirupsen/logrus"
-	"encoding/json"
 	//"math/rand"
 	//"strconv"
 	"os"
@@ -56,7 +55,12 @@ func GetLinkDetails() cmap.ConcurrentMap {
 		//	"link value": linkWrapper,
 		//}).Debug("插入etcd的link的value值信息")
 	}
-	fmt.Println(LinkMap.MarshalJSON())
+	//fmt.Println(LinkMap.MarshalJSON())
+	for key, value := range LinkMap.IterBuffered() {
+		fmt.Println(key)
+		fmt.Println(value)
+		fmt.Println()
+	}
 	return LinkMap
 }
 
