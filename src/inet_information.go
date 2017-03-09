@@ -38,11 +38,10 @@ type LinkAttrs struct {
 }
 
 func main() {
-	GetLinkDetailsInJSON()
+	GetLinkDetails()
 }
 
-func GetLinkDetailsInJSON() []string {
-	var links []string
+func GetLinkDetails() cmap.ConcurrentMap{
 	linkList := getLinkList()
 
 	for _, link := range linkList {
@@ -52,13 +51,14 @@ func GetLinkDetailsInJSON() []string {
 			log.Fatalf("JSON marshaling failed: %s", err)
 		}
 
-		log.WithFields(log.Fields{
-			"link JSON数据": la,
-		}).Debug("插入etcd的link的value值信息")
+		LinkMap.Set(la.Id, data)
 
-		links = append(links, string(data))
+		log.WithFields(log.Fields{
+			"kye":la.Id,
+			"link value": la,
+		}).Debug("插入etcd的link的value值信息")
 	}
-	return links
+	return LinkMap
 }
 
 func getLinkList() ([]netlink.Link) {
