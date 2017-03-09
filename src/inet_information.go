@@ -6,10 +6,13 @@ import (
 	"net"
 	log "github.com/Sirupsen/logrus"
 	"encoding/json"
-	"math/rand"
-	"strconv"
+	//"math/rand"
+	//"strconv"
 	"os"
+	"github.com/orcaman/concurrent-map"
 )
+
+var LinkMap = cmap.New()
 
 func init() {
 	log.SetFormatter(&log.JSONFormatter{})
@@ -18,7 +21,7 @@ func init() {
 }
 
 type LinkAttrs struct {
-	Id           string // equals HostId + BusInfo
+	Id           string // equals HostId +"_" +BusInfo
 	HostId       string
 	BusInfo      string
 	Name         string
@@ -26,9 +29,11 @@ type LinkAttrs struct {
 	HardwareAddr net.HardwareAddr
 	MTU          int
 	TxQLen       int
-	AdminStat    netlink.LinkOperState
-	OperStat     netlink.LinkOperState
+	Statistics   *netlink.LinkStatistics
+	SysStat      netlink.LinkOperState
+	OperStat     netlink.LinkOperState //flags+OperState
 	ParentId     int
+	MasterId     int
 	BypassId     string
 }
 
@@ -69,26 +74,27 @@ func NewLinkAttrs(link netlink.Link) (*LinkAttrs) {
 	name := linkAttrs.Name
 	la := new(LinkAttrs)
 
-	la.Id = la.HostId + la.BusInfo
-	la.HostId = getHostId()
-	la.BusInfo = getEthBusInfo(name)
+	la.Id = la.HostId + "_" + la.BusInfo
+	la.HostId = GetHostId()
+	la.BusInfo = GetEthBusInfo(name)
 	la.Name = name
 	la.DisplayName = name //need to retrieve from etcd if etcd has, or equals name
 	la.HardwareAddr = linkAttrs.HardwareAddr
 	la.MTU = linkAttrs.MTU
 	la.TxQLen = linkAttrs.TxQLen
-	la.AdminStat = linkAttrs.OperState //need to retrieve from etcd if etcd has, or equals operState
+	la.SysStat = linkAttrs.OperState //need to retrieve from etcd if etcd has, or equals operState
 	la.OperStat = linkAttrs.OperState
 	la.ParentId = linkAttrs.ParentIndex
 	la.BypassId = ""
 	return la
 }
 
-func getHostId() string {
-	return strconv.Itoa(rand.Int())
+func GetHostId() string {
+	//return strconv.Itoa(rand.Int())
+	return "1"
 }
 
-func getEthBusInfo(ethName string) string {
+func GetEthBusInfo(ethName string) string {
 	ethHandle, err := ethtool.NewEthtool()
 	if err != nil {
 		log.Fatal(err)

@@ -6,7 +6,6 @@ import (
 	"github.com/vishvananda/netlink"
 	"time"
 	"github.com/projectcalico/felix/set"
-	"syscall"
 )
 
 func init() {
@@ -117,17 +116,22 @@ readLoop:
 
 func (m *InterfaceMonitor) handleNetlinkUpdate(update netlink.LinkUpdate) {
 	attrs := update.Link.Attrs()
+	name := attrs.Name
 	if attrs == nil {
 		// Defensive, some sort of interface that the netlink lib doesn't understand?
 		log.WithField("update", update).Warn("Missing attributes on netlink update.")
 		return
 	}
-	msgType := update.Header.Type
-	ifaceExists := msgType == syscall.RTM_NEWLINK // Alternative is an RTM_DELLINK
-	m.storeAndNotifyLink(ifaceExists, update.Link)
+
+	ifId := GetHostId()+GetEthBusInfo(name)
+	getLinkById(ifId)
+	m.updateEtcd()
+}
+func getLinkById(ifId string) LinkAttrs{
+
 }
 
-func (m *InterfaceMonitor) storeAndNotifyLink(ifaceExists bool, link netlink.Link) {
+func (m *InterfaceMonitor) updateEtcd(ifaceExists bool, link netlink.Link) {
 	log.WithFields(log.Fields{
 		"ifaceExists": ifaceExists,
 		"link":        link,
@@ -147,68 +151,6 @@ func (m *InterfaceMonitor) storeAndNotifyLink(ifaceExists bool, link netlink.Lin
 
 	m.storeAndNotifyLinkInner(ifaceExists, newName, link)
 }
-
-func (m *InterfaceMonitor) storeAndNotifyLinkInner(ifaceExists bool, ifaceName string, link netlink.Link) {
-	log.WithFields(log.Fields{
-		"ifaceExists": ifaceExists,
-		"ifaceName":   ifaceName,
-		"link":        link,
-	}).Debug("storeAndNotifyLinkInner called")
-
-	// Store or remove mapping between this interface's index and name.
-	attrs := link.Attrs()
-	ifIndex := attrs.Index
-	if ifaceExists {
-		m.ifaceName[ifIndex] = ifaceName
-	} else {
-		log.Debug("Notify link non-existence to address callback consumers")
-		delete(m.ifaceAddrs, ifIndex)
-		m.notifyIfaceAddrs(ifIndex)
-		delete(m.ifaceName, ifIndex)
-	}
-
-	// We need the operstate of the interface; this is carried in the IFF_RUNNING flag.  The
-	// IFF_UP flag contains the admin state, which doesn't tell us whether we can program routes
-	// etc.
-	rawFlags := attrs.RawFlags
-	ifaceIsUp := ifaceExists && rawFlags&syscall.IFF_RUNNING != 0
-	ifaceWasUp := m.upIfaces.Contains(ifaceName)
-	logCxt := log.WithField("ifaceName", ifaceName)
-	if ifaceIsUp && !ifaceWasUp {
-		logCxt.Debug("Interface now up")
-		m.upIfaces.Add(ifaceName)
-		m.Callback(ifaceName, StateUp)
-	} else if ifaceWasUp && !ifaceIsUp {
-		logCxt.Debug("Interface now down")
-		m.upIfaces.Discard(ifaceName)
-		m.Callback(ifaceName, StateDown)
-	} else {
-		logCxt.WithField("ifaceIsUp", ifaceIsUp).Debug("Nothing to notify")
-	}
-
-	// If the link now exists, get addresses for the link and store and notify those too; then
-	// we don't have to worry about a possible race between the link and address update
-	// channels.  We deliberately do this regardless of the link state, as in some cases this
-	// will allow us to secure a Host Endpoint interface _before_ it comes up, and so eliminate
-	// a small window of insecurity.
-	if ifaceExists {
-		newAddrs := set.New()
-		for _, family := range [2]int{netlink.FAMILY_V4, netlink.FAMILY_V6} {
-			addrs, err := m.netlinkStub.AddrList(link, family)
-			if err != nil {
-				log.WithError(err).Warn("Netlink addr list operation failed.")
-			}
-			for _, addr := range addrs {
-				newAddrs.Add(addr.IPNet.IP.String())
-			}
-		}
-		if (m.ifaceAddrs[ifIndex] == nil) || !m.ifaceAddrs[ifIndex].Equals(newAddrs) {
-			m.ifaceAddrs[ifIndex] = newAddrs
-			m.notifyIfaceAddrs(ifIndex)
-		}
-	}
-}
-
 
 /*
 func notify(ch <-chan netlink.LinkUpdate) {
