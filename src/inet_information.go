@@ -42,18 +42,19 @@ func GetLinkDetails() cmap.ConcurrentMap {
 	linkList := getLinkList()
 
 	for _, link := range linkList {
-		la := NewLink(link)
-		data, err := json.MarshalIndent(la, "", "\t")
+		linkWrapper := NewLink(link)
+		data, err := json.MarshalIndent(linkWrapper, "", "\t")
 		if err != nil {
 			log.Fatalf("JSON marshaling failed: %s", err)
 		}
 
-		LinkMap.Set(la.Id, data)
+		LinkMap.Set(linkWrapper.Id, data)
 
 		log.WithFields(log.Fields{
-			"kye":        la.Id,
-			"link value": la,
+			"kye":        linkWrapper.Id,
+			"link value": linkWrapper,
 		}).Debug("插入etcd的link的value值信息")
+		fmt.Println(LinkMap)
 	}
 	return LinkMap
 }
