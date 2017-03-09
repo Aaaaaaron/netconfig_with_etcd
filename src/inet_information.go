@@ -10,6 +10,7 @@ import (
 	//"strconv"
 	"os"
 	"github.com/orcaman/concurrent-map"
+	"fmt"
 )
 
 var LinkMap = cmap.New()
@@ -31,7 +32,8 @@ type LinkAttrs struct {
 	TxQLen       int
 	Statistics   *netlink.LinkStatistics
 	SysStat      netlink.LinkOperState
-	OperStat     netlink.LinkOperState //flags+OperState
+	adminStat    netlink.LinkOperState //flags+OperState
+	execStat    netlink.LinkOperState
 	ParentId     int
 	MasterId     int
 	BypassId     string
@@ -39,6 +41,7 @@ type LinkAttrs struct {
 
 func main() {
 	GetLinkDetails()
+	fmt.Print(LinkMap)
 }
 
 func GetLinkDetails() cmap.ConcurrentMap{
@@ -83,7 +86,7 @@ func NewLinkAttrs(link netlink.Link) (*LinkAttrs) {
 	la.MTU = linkAttrs.MTU
 	la.TxQLen = linkAttrs.TxQLen
 	la.SysStat = linkAttrs.OperState //need to retrieve from etcd if etcd has, or equals operState
-	la.OperStat = linkAttrs.OperState
+	la.adminStat = linkAttrs.OperState
 	la.ParentId = linkAttrs.ParentIndex
 	la.BypassId = ""
 	return la

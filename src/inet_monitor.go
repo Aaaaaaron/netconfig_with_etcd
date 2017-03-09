@@ -60,10 +60,12 @@ func NewWithStubs(netlinkStub netlinkStub, resyncC <-chan time.Time) *InterfaceM
 }
 
 func main() {
+	GetLinkDetails()
 
 }
 
 func (m *InterfaceMonitor) MonitorInterfaces() {
+
 	log.Info("Interface monitoring thread started.")
 
 	updates := make(chan netlink.LinkUpdate)
@@ -73,9 +75,6 @@ func (m *InterfaceMonitor) MonitorInterfaces() {
 	}
 	log.Info("Subscribed to netlink updates.")
 
-	// Start of day, do a resync to notify all our existing interfaces.  We also do periodic
-	// resyncs because it's not clear what the ordering guarantees are for our netlink
-	// subscription vs a list operation as used by resync().
 	err := m.resync()
 	if err != nil {
 		log.WithError(err).Fatal("Failed to read link states from netlink.")
@@ -123,15 +122,21 @@ func (m *InterfaceMonitor) handleNetlinkUpdate(update netlink.LinkUpdate) {
 		return
 	}
 
-	ifId := GetHostId()+GetEthBusInfo(name)
-	getLinkById(ifId)
-	m.updateEtcd()
+	ifId := GetHostId() + "_" + GetEthBusInfo(name)
+	link := getLinkById(ifId)
+	//m.updateEtcd()
+	m.updateMap(link)
 }
-func getLinkById(ifId string) LinkAttrs{
-
+func getLinkById(ifId string) (LinkAttrs) {
+	result, ok := LinkMap.Get(ifId);
+	if !ok {
+		log.Warn("can not retrieve value from key:", ifId)
+		return nil
+	}
+	return result.(LinkAttrs)
 }
 
-func (m *InterfaceMonitor) updateEtcd(ifaceExists bool, link netlink.Link) {
+func (m *InterfaceMonitor) updateMap( link netlink.Link) {
 	log.WithFields(log.Fields{
 		"ifaceExists": ifaceExists,
 		"link":        link,
