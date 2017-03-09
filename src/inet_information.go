@@ -21,10 +21,10 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 }
 
-//warpper netlink's Link,and attrs add some fields
+//warpper netlink's Link,and Attrs add some fields
 type LinkWrapper struct {
 	link  netlink.Link
-	attrs *LinkAttrs
+	Attrs *LinkAttrs
 }
 
 type LinkAttrs struct {
@@ -55,17 +55,17 @@ func GetLinkDetails() cmap.ConcurrentMap {
 
 	for _, link := range linkList {
 		linkWrapper := NewLink(link)
-		data, err := json.MarshalIndent(linkWrapper.attrs, "", "\t")
+		data, err := json.MarshalIndent(linkWrapper.Attrs, "", "\t")
 		if err != nil {
 			log.Fatalf("JSON marshaling failed: %s", err)
 		}
 
-		fmt.Println(data)
+		fmt.Println(linkWrapper.Attrs)
 		//LinkMap.Set(linkWrapper.Id, data)
-		LinkMap.Set(linkWrapper.attrs.Id, linkWrapper.attrs)
+		LinkMap.Set(linkWrapper.Attrs.Id, linkWrapper.Attrs)
 
 		//log.WithFields(log.Fields{
-		//	"kye":        linkWrapper.attrs.Id,
+		//	"kye":        linkWrapper.Attrs.Id,
 		//	"link value": linkWrapper,
 		//	"josn value": data,
 		//}).Debug("插入etcd的link的value值信息")
@@ -86,22 +86,22 @@ func NewLink(link netlink.Link) (*LinkWrapper) {
 	lw := new(LinkWrapper)
 
 	lw.link = link
-	lw.attrs = new(LinkAttrs)
-	lw.attrs.Id = GetHostId() + "_" + GetEthBusInfo(name)
-	lw.attrs.HostId = GetHostId()
-	lw.attrs.BusInfo = GetEthBusInfo(name)
-	lw.attrs.Name = name
-	lw.attrs.DisplayName = name //need to retrieve from etcd if etcd has, or equals name
-	lw.attrs.HardwareAddr = link.Attrs().HardwareAddr
-	lw.attrs.MTU = link.Attrs().MTU
-	lw.attrs.TxQLen = link.Attrs().TxQLen
-	lw.attrs.Statistics = link.Attrs().Statistics
-	lw.attrs.ParentIndex = link.Attrs().ParentIndex
-	lw.attrs.MasterIndex = link.Attrs().MasterIndex
-	//lw.attrs.SysStat =
-	//lw.attrs.AdminStat = linkAttrs.OperState //need to retrieve from etcd if etcd has, or equals SysStat
-	//lw.attrs.ExecStat=
-	lw.attrs.BypassId = ""
+	lw.Attrs = new(LinkAttrs)
+	lw.Attrs.Id = GetHostId() + "_" + GetEthBusInfo(name)
+	lw.Attrs.HostId = GetHostId()
+	lw.Attrs.BusInfo = GetEthBusInfo(name)
+	lw.Attrs.Name = name
+	lw.Attrs.DisplayName = name //need to retrieve from etcd if etcd has, or equals name
+	lw.Attrs.HardwareAddr = link.Attrs().HardwareAddr
+	lw.Attrs.MTU = link.Attrs().MTU
+	lw.Attrs.TxQLen = link.Attrs().TxQLen
+	lw.Attrs.Statistics = link.Attrs().Statistics
+	lw.Attrs.ParentIndex = link.Attrs().ParentIndex
+	lw.Attrs.MasterIndex = link.Attrs().MasterIndex
+	//lw.Attrs.SysStat =
+	//lw.Attrs.AdminStat = linkAttrs.OperState //need to retrieve from etcd if etcd has, or equals SysStat
+	//lw.Attrs.ExecStat=
+	lw.Attrs.BypassId = ""
 	return lw
 }
 
