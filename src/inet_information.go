@@ -60,14 +60,15 @@ func GetLinkDetails() cmap.ConcurrentMap {
 			log.Fatalf("JSON marshaling failed: %s", err)
 		}
 
+		fmt.Println(data)
 		//LinkMap.Set(linkWrapper.Id, data)
 		LinkMap.Set(linkWrapper.attrs.Id, linkWrapper.attrs)
 
-		log.WithFields(log.Fields{
-			"kye":        linkWrapper.attrs.Id,
-			"link value": linkWrapper,
-			"josn value": data,
-		}).Debug("插入etcd的link的value值信息")
+		//log.WithFields(log.Fields{
+		//	"kye":        linkWrapper.attrs.Id,
+		//	"link value": linkWrapper,
+		//	"josn value": data,
+		//}).Debug("插入etcd的link的value值信息")
 	}
 	//fmt.Println(LinkMap.MarshalJSON())
 	for item := range LinkMap.IterBuffered() {
