@@ -23,7 +23,7 @@ func init() {
 
 //warpper netlink's Link,and attrs add some fields
 type LinkWrapper struct {
-	link  *netlink.Link
+	link  netlink.Link
 	attrs *LinkAttrs
 }
 
@@ -85,7 +85,7 @@ func NewLink(link netlink.Link) (*LinkWrapper) {
 	name := link.Attrs().Name
 	lw := new(LinkWrapper)
 
-	lw.link = &link
+	lw.link = link
 	lw.attrs.Id = GetHostId() + "_" + GetEthBusInfo(name)
 	lw.attrs.HostId = GetHostId()
 	lw.attrs.BusInfo = GetEthBusInfo(name)
