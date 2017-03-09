@@ -35,7 +35,7 @@ type LinkWrapper struct {
 
 func main() {
 	GetLinkDetails()
-	fmt.Print(LinkMap)
+	//fmt.Print(LinkMap)
 }
 
 func GetLinkDetails() cmap.ConcurrentMap {
@@ -43,19 +43,20 @@ func GetLinkDetails() cmap.ConcurrentMap {
 
 	for _, link := range linkList {
 		linkWrapper := NewLink(link)
-		data, err := json.MarshalIndent(linkWrapper, "", "\t")
-		if err != nil {
-			log.Fatalf("JSON marshaling failed: %s", err)
-		}
+		//data, err := json.MarshalIndent(linkWrapper, "", "\t")
+		//if err != nil {
+		//	log.Fatalf("JSON marshaling failed: %s", err)
+		//}
 
-		LinkMap.Set(linkWrapper.Id, data)
+		//LinkMap.Set(linkWrapper.Id, data)
+		LinkMap.Set(linkWrapper.Id, linkWrapper)
 
-		log.WithFields(log.Fields{
-			"kye":        linkWrapper.Id,
-			"link value": linkWrapper,
-		}).Debug("插入etcd的link的value值信息")
-		fmt.Println(LinkMap)
+		//log.WithFields(log.Fields{
+		//	"kye":        linkWrapper.Id,
+		//	"link value": linkWrapper,
+		//}).Debug("插入etcd的link的value值信息")
 	}
+	fmt.Println(LinkMap.MarshalJSON())
 	return LinkMap
 }
 
@@ -91,7 +92,7 @@ func GetHostId() string {
 func GetEthBusInfo(ethName string) string {
 	ethHandle, err := ethtool.NewEthtool()
 	if err != nil {
-		log.Fatal("can not get ethtoll",err)
+		log.Fatal("can not get ethtoll", err)
 	}
 
 	busInfo, err := ethHandle.BusInfo(ethName)
