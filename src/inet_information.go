@@ -86,6 +86,7 @@ func NewLink(link netlink.Link) (*LinkWrapper) {
 	lw := new(LinkWrapper)
 
 	lw.link = link
+	lw.attrs = new(LinkAttrs)
 	lw.attrs.Id = GetHostId() + "_" + GetEthBusInfo(name)
 	lw.attrs.HostId = GetHostId()
 	lw.attrs.BusInfo = GetEthBusInfo(name)
