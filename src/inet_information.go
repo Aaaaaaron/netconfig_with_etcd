@@ -74,7 +74,7 @@ func NewLinkAttrs(link netlink.Link) (*LinkAttrs) {
 	name := linkAttrs.Name
 	la := new(LinkAttrs)
 
-	la.Id = la.HostId + "_" + la.BusInfo
+	la.Id = GetHostId() + "_" + GetEthBusInfo(name)
 	la.HostId = GetHostId()
 	la.BusInfo = GetEthBusInfo(name)
 	la.Name = name
