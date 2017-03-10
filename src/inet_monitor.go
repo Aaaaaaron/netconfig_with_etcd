@@ -5,6 +5,7 @@ import (
 	"os"
 	"github.com/vishvananda/netlink"
 	"time"
+	"fmt"
 )
 
 func init() {
@@ -44,7 +45,7 @@ type InterfaceMonitor struct {
 
 func NewInetMonitor() *InterfaceMonitor {
 	// Interface monitor using the real netlink, and resyncing every 10 seconds.
-	resyncTicker := time.NewTicker(10 * time.Second)
+	resyncTicker := time.NewTicker(100 * time.Second)
 	return NewWithStubs(&netlinkReal{}, resyncTicker.C)
 }
 
@@ -79,11 +80,11 @@ func (m *InterfaceMonitor) MonitorInterfaces() {
 
 readLoop:
 	for {
-		log.WithFields(log.Fields{
-			"updates":     updates,
-			"addrUpdates": addrUpdates,
-			"resyncC":     m.resyncC,
-		}).Debug("About to select on possible triggers")
+		//log.WithFields(log.Fields{
+		//	"updates":     updates,
+		//	"addrUpdates": addrUpdates,
+		//	"resyncC":     m.resyncC,
+		//}).Debug("About to select on possible triggers")
 		select {
 		case update, ok := <-updates:
 			log.WithField("update", update).Debug("Link update")
@@ -98,6 +99,7 @@ readLoop:
 				log.Warn("Failed to read an address update")
 				break readLoop
 			}
+			fmt.Print("update addr")
 		//m.handleNetlinkAddrUpdate(addrUpdate)
 		case <-m.resyncC:
 			log.Debug("Resync trigger")
