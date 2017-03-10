@@ -80,7 +80,7 @@ func NewLink(link netlink.Link) (*LinkWrapper) {
 	lw := new(LinkWrapper)
 
 	lw.link = link
-	lw.Attrs.Id = GetHostId() + "_" + GetEthBusInfo(name)
+	lw.Attrs.Id = GetLinkId(name)
 	lw.Attrs.HostId = GetHostId()
 	lw.Attrs.BusInfo = GetEthBusInfo(name)
 	lw.Attrs.Name = name
@@ -101,6 +101,11 @@ func NewLink(link netlink.Link) (*LinkWrapper) {
 func GetHostId() string {
 	//return strconv.Itoa(rand.Int())
 	return "1"
+}
+
+func GetLinkId(name string) string {
+	ifId := GetHostId() + "_" + GetEthBusInfo(name)
+	return ifId
 }
 
 func GetEthBusInfo(ethName string) string {

@@ -53,15 +53,13 @@ func NewWithStubs(netlinkStub netlinkStub, resyncC <-chan time.Time) *InterfaceM
 	return &InterfaceMonitor{
 		netlinkStub: netlinkStub,
 		resyncC:     resyncC,
-		upIfaces:    set.New(),
-		ifaceName:   map[int]string{},
-		ifaceAddrs:  map[int]set.Set{},
 	}
 }
 
 func main() {
 	GetLinkDetails()
-
+	monitor := NewInetMonitor()
+	monitor.MonitorInterfaces()
 }
 
 func (m *InterfaceMonitor) MonitorInterfaces() {
@@ -75,10 +73,10 @@ func (m *InterfaceMonitor) MonitorInterfaces() {
 	}
 	log.Info("Subscribed to netlink updates.")
 
-	err := m.resync()
-	if err != nil {
-		log.WithError(err).Fatal("Failed to read link states from netlink.")
-	}
+	//err := m.resync()
+	//if err != nil {
+	//	log.WithError(err).Fatal("Failed to read link states from netlink.")
+	//}
 
 readLoop:
 	for {
@@ -101,13 +99,13 @@ readLoop:
 				log.Warn("Failed to read an address update")
 				break readLoop
 			}
-			m.handleNetlinkAddrUpdate(addrUpdate)
+		//m.handleNetlinkAddrUpdate(addrUpdate)
 		case <-m.resyncC:
 			log.Debug("Resync trigger")
-			err := m.resync()
-			if err != nil {
-				log.WithError(err).Fatal("Failed to read link states from netlink.")
-			}
+		//err := m.resync()
+		//if err != nil {
+		//	log.WithError(err).Fatal("Failed to read link states from netlink.")
+		//}
 		}
 	}
 	log.Fatal("Failed to read events from Netlink.")
@@ -117,44 +115,29 @@ func (m *InterfaceMonitor) handleNetlinkUpdate(update netlink.LinkUpdate) {
 	attrs := update.Link.Attrs()
 	name := attrs.Name
 	if attrs == nil {
-		// Defensive, some sort of interface that the netlink lib doesn't understand?
 		log.WithField("update", update).Warn("Missing attributes on netlink update.")
 		return
 	}
 
-	ifId := GetHostId() + "_" + GetEthBusInfo(name)
+	ifId := GetLinkId(name)
 	link := getLinkById(ifId)
 	//m.updateEtcd()
-	m.updateMap(link)
+	m.updateMap(link.link)
 }
-func getLinkById(ifId string) (LinkAttrs) {
+
+func getLinkById(ifId string) (LinkWrapper) {
 	result, ok := LinkMap.Get(ifId);
 	if !ok {
 		log.Warn("can not retrieve value from key:", ifId)
 		return nil
 	}
-	return result.(LinkAttrs)
+	return result.(LinkWrapper)
 }
 
-func (m *InterfaceMonitor) updateMap( link netlink.Link) {
-	log.WithFields(log.Fields{
-		"ifaceExists": ifaceExists,
-		"link":        link,
-	}).Debug("storeAndNotifyLink called")
-
-	attrs := link.Attrs()
-	ifIndex := attrs.Index
-	oldName := m.ifaceName[ifIndex]
-	newName := attrs.Name
-	if oldName != "" && oldName != newName {
-		log.WithFields(log.Fields{
-			"oldName": oldName,
-			"newName": newName,
-		}).Info("Interface renamed, simulating deletion of old copy.")
-		m.storeAndNotifyLinkInner(false, oldName, link)
-	}
-
-	m.storeAndNotifyLinkInner(ifaceExists, newName, link)
+func (m *InterfaceMonitor) updateMap(link netlink.Link) {
+	id := GetLinkId(link.Attrs().Name)
+	LinkMap.Set(id, NewLink(link))
+	log.WithField("updateMap", LinkMap).Debug("Link update map")
 }
 
 /*
