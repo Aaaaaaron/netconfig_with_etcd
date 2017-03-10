@@ -16,7 +16,7 @@ var LinkMap = cmap.New()
 func init() {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetOutput(os.Stdout)
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.InfoLevel)
 }
 
 //warpper netlink's Link,and Attrs add some fields

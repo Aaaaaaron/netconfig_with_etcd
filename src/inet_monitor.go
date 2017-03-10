@@ -32,6 +32,7 @@ func main() {
 	GetLinkDetails()
 	link, _ := LinkMap.Get(GetLinkId("eth0"))
 	netlink := link.(LinkWrapper)
+	log.WithField("link",netlink.link).Debug("get link")
 	linkUpdate := LinkUpdate{"update", "1", "eth0", "set", "down", netlink.link}
 	linkUpdateChan := make(chan LinkUpdate)
 	updateChan := UpdateChan{linkUpdateChan}
@@ -60,14 +61,18 @@ func UpdateKernel(updateChan UpdateChan, resyncC <-chan time.Time) {
 }
 
 func handldLinkUpdate(update LinkUpdate) {
+	log.Debug("into handldLinkUpdate")
 	link := update.link
 	switch update.Action {
 	case "update":
+		log.Debug("into update")
 		if update.Command == "set" {
+			log.Debug("into set")
 			if update.Command == "up" {
 				netlink.LinkSetUp(link)
 			}
 			if update.Command == "down" {
+				log.Debug("into down")
 				netlink.LinkSetDown(update.link)
 			}
 		}
