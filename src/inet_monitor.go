@@ -5,7 +5,6 @@ import (
 	"os"
 	"github.com/vishvananda/netlink"
 	"time"
-	"fmt"
 )
 
 func init() {
@@ -14,96 +13,44 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 }
 
-type netlinkStub interface {
-	Subscribe(
-		linkUpdates chan netlink.LinkUpdate,
-		addrUpdates chan netlink.AddrUpdate,
-	) error
-	LinkList() ([]netlink.Link, error)
-	AddrList(link netlink.Link, family int) ([]netlink.Addr, error)
+type UpdateChan struct {
+	LinkUpdateChan <-chan LinkUpdate
+	//AddrUpdateChan <-chan LinkUpdate
+	//RouteUpdateChan <-chan LinkUpdate
 }
 
-type State string
-
-const (
-	StateUp   = "up"
-	StateDown = "down"
-)
-
-//type InterfaceStateCallback func(ifaceName string, ifaceState State)
-//type AddrStateCallback func(ifaceName string, addrs set.Set)
-
-type InterfaceMonitor struct {
-	netlinkStub netlinkStub
-	resyncC     <-chan time.Time
-	//upIfaces     set.Set
-	//Callback     InterfaceStateCallback
-	//AddrCallback AddrStateCallback
-	//ifaceName    map[int]string
-	//ifaceAddrs   map[int]set.Set
-}
-
-func NewInetMonitor() *InterfaceMonitor {
-	// Interface monitor using the real netlink, and resyncing every 10 seconds.
-	resyncTicker := time.NewTicker(100 * time.Second)
-	return NewWithStubs(&netlinkReal{}, resyncTicker.C)
-}
-
-func NewWithStubs(netlinkStub netlinkStub, resyncC <-chan time.Time) *InterfaceMonitor {
-	return &InterfaceMonitor{
-		netlinkStub: netlinkStub,
-		resyncC:     resyncC,
-	}
+type LinkUpdate struct {
+	Action   string
+	LinkId   string
+	DevName  string
+	Command  string
+	Argument string
+	link     netlink.Link
 }
 
 func main() {
 	GetLinkDetails()
-	monitor := NewInetMonitor()
-	monitor.MonitorInterfaces()
+	link, _ := LinkMap.Get(GetLinkId("eth0"))
+	netlink := LinkWrapper(link).link
+	linkUpdate := LinkUpdate{"update", "1", "eth0", "set", "down", netlink}
+	linkUpdateChan := make(chan LinkUpdate)
+	updateChan := UpdateChan{linkUpdateChan}
+	go UpdateKernel(updateChan, time.NewTicker(10 * time.Second).C)
+	updateChan.LinkUpdateChan <- linkUpdate
+	time.Sleep(100000 * time.Millisecond)
 }
 
-func (m *InterfaceMonitor) MonitorInterfaces() {
-
+func UpdateKernel(updateChan UpdateChan, resyncC <-chan time.Time) {
 	log.Info("Interface monitoring thread started.")
 
-	updates := make(chan netlink.LinkUpdate)
-	addrUpdates := make(chan netlink.AddrUpdate)
-	if err := m.netlinkStub.Subscribe(updates, addrUpdates); err != nil {
-		log.WithError(err).Fatal("Failed to subscribe to netlink stub")
-	}
-	log.Info("Subscribed to netlink updates.")
-
-	//err := m.resync()
-	//if err != nil {
-	//	log.WithError(err).Fatal("Failed to read link states from netlink.")
-	//}
-
-readLoop:
 	for {
-		//log.WithFields(log.Fields{
-		//	"updates":     updates,
-		//	"addrUpdates": addrUpdates,
-		//	"resyncC":     m.resyncC,
-		//}).Debug("About to select on possible triggers")
 		select {
-		case update, ok := <-updates:
-			log.WithField("update", update).Debug("Link update")
-			if !ok {
-				log.Warn("Failed to read a link update")
-				break readLoop
-			}
-			m.handleNetlinkUpdate(update)
-		case addrUpdate, ok := <-addrUpdates:
-			log.WithField("addrUpdate", addrUpdate).Debug("Address update")
-			if !ok {
-				log.Warn("Failed to read an address update")
-				break readLoop
-			}
-			fmt.Print("update addr")
-		//m.handleNetlinkAddrUpdate(addrUpdate)
-		case <-m.resyncC:
+		case linkUpdate := <-updateChan.LinkUpdateChan:
+			log.WithField("update", linkUpdate).Debug("Link update")
+			handldLinkUpdate(linkUpdate)
+		case <-resyncC:
 			log.Debug("Resync trigger")
-		//err := m.resync()
+		//err := resync()
 		//if err != nil {
 		//	log.WithError(err).Fatal("Failed to read link states from netlink.")
 		//}
@@ -112,31 +59,30 @@ readLoop:
 	log.Fatal("Failed to read events from Netlink.")
 }
 
-func (m *InterfaceMonitor) handleNetlinkUpdate(update netlink.LinkUpdate) {
-	attrs := update.Link.Attrs()
-	if attrs == nil {
-		log.WithField("update", update).Warn("Missing attributes on netlink update.")
-		return
-	}
+func handldLinkUpdate(update LinkUpdate) {
+	link := update.link
+	switch update.Action {
+	case "set":
+		if update.Command == "up" {
+			netlink.LinkSetUp(link)
+		}
+		if update.Command == "down" {
+			netlink.LinkSetDown(update.link)
+		}
 
-	ifId := GetLinkId(attrs.Name)
-	link := getLinkById(ifId)
-	//m.updateEtcd()
-	m.updateMap(link.link)
+	//case:
+	//	return
+	//case:
+	//	return
+	}
 }
 
 func getLinkById(ifId string) (LinkWrapper) {
 	result, ok := LinkMap.Get(ifId);
 	if !ok {
-		log.Fatal("can not retrieve value from key:", ifId)//todo how to do is better ?
+		log.Fatal("can not retrieve value from key:", ifId) //todo how to do is better ?
 	}
 	return result.(LinkWrapper)
-}
-
-func (m *InterfaceMonitor) updateMap(link netlink.Link) {
-	id := GetLinkId(link.Attrs().Name)
-	LinkMap.Set(id, NewLink(link))
-	log.WithField("updateMap", LinkMap).Debug("Link update map")
 }
 
 /*
