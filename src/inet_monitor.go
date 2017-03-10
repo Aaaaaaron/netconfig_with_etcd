@@ -14,7 +14,7 @@ func init() {
 }
 
 type UpdateChan struct {
-	LinkUpdateChan <-chan LinkUpdate
+	LinkUpdateChan chan LinkUpdate
 	//AddrUpdateChan <-chan LinkUpdate
 	//RouteUpdateChan <-chan LinkUpdate
 }
@@ -31,7 +31,7 @@ type LinkUpdate struct {
 func main() {
 	GetLinkDetails()
 	link, _ := LinkMap.Get(GetLinkId("eth0"))
-	netlink := LinkWrapper(link).link
+	netlink := (LinkWrapper(link).link).(netlink.Link)
 	linkUpdate := LinkUpdate{"update", "1", "eth0", "set", "down", netlink}
 	linkUpdateChan := make(chan LinkUpdate)
 	updateChan := UpdateChan{linkUpdateChan}
