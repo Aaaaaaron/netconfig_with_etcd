@@ -5,7 +5,6 @@ import (
 	"os"
 	"github.com/vishvananda/netlink"
 	"time"
-	"github.com/projectcalico/felix/set"
 )
 
 func init() {
@@ -30,17 +29,17 @@ const (
 	StateDown = "down"
 )
 
-type InterfaceStateCallback func(ifaceName string, ifaceState State)
-type AddrStateCallback func(ifaceName string, addrs set.Set)
+//type InterfaceStateCallback func(ifaceName string, ifaceState State)
+//type AddrStateCallback func(ifaceName string, addrs set.Set)
 
 type InterfaceMonitor struct {
 	netlinkStub  netlinkStub
 	resyncC      <-chan time.Time
-	upIfaces     set.Set
-	Callback     InterfaceStateCallback
-	AddrCallback AddrStateCallback
-	ifaceName    map[int]string
-	ifaceAddrs   map[int]set.Set
+	//upIfaces     set.Set
+	//Callback     InterfaceStateCallback
+	//AddrCallback AddrStateCallback
+	//ifaceName    map[int]string
+	//ifaceAddrs   map[int]set.Set
 }
 
 func NewInetMonitor() *InterfaceMonitor {
