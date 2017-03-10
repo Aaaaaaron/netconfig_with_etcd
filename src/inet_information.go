@@ -43,10 +43,10 @@ type LinkAttrs struct {
 	BypassId     string
 }
 
-func main() {
-	GetLinkDetails()
-	//fmt.Print(LinkMap)
-}
+//func main() {
+//	GetLinkDetails()
+//	//fmt.Print(LinkMap)
+//}
 
 func GetLinkDetails() cmap.ConcurrentMap {
 	linkList := getLinkList()
@@ -109,6 +109,9 @@ func GetLinkId(name string) string {
 }
 
 func GetEthBusInfo(ethName string) string {
+	if ethName == "lo" {
+		return "lo"
+	}
 	ethHandle, err := ethtool.NewEthtool()
 	if err != nil {
 		log.Fatal("can not get ethtoll", err)

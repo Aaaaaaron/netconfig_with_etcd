@@ -33,8 +33,8 @@ const (
 //type AddrStateCallback func(ifaceName string, addrs set.Set)
 
 type InterfaceMonitor struct {
-	netlinkStub  netlinkStub
-	resyncC      <-chan time.Time
+	netlinkStub netlinkStub
+	resyncC     <-chan time.Time
 	//upIfaces     set.Set
 	//Callback     InterfaceStateCallback
 	//AddrCallback AddrStateCallback
@@ -127,8 +127,7 @@ func (m *InterfaceMonitor) handleNetlinkUpdate(update netlink.LinkUpdate) {
 func getLinkById(ifId string) (LinkWrapper) {
 	result, ok := LinkMap.Get(ifId);
 	if !ok {
-		log.Warn("can not retrieve value from key:", ifId)
-		return nil
+		log.Fatal("can not retrieve value from key:", ifId)//todo how to do is better ?
 	}
 	return result.(LinkWrapper)
 }
