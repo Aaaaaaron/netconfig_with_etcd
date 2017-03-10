@@ -62,14 +62,15 @@ func UpdateKernel(updateChan UpdateChan, resyncC <-chan time.Time) {
 func handldLinkUpdate(update LinkUpdate) {
 	link := update.link
 	switch update.Action {
-	case "set":
-		if update.Command == "up" {
-			netlink.LinkSetUp(link)
+	case "update":
+		if update.Command == "set" {
+			if update.Command == "up" {
+				netlink.LinkSetUp(link)
+			}
+			if update.Command == "down" {
+				netlink.LinkSetDown(update.link)
+			}
 		}
-		if update.Command == "down" {
-			netlink.LinkSetDown(update.link)
-		}
-
 	//case:
 	//	return
 	//case:
