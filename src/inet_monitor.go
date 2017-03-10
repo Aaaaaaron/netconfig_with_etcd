@@ -114,13 +114,12 @@ readLoop:
 
 func (m *InterfaceMonitor) handleNetlinkUpdate(update netlink.LinkUpdate) {
 	attrs := update.Link.Attrs()
-	name := attrs.Name
 	if attrs == nil {
 		log.WithField("update", update).Warn("Missing attributes on netlink update.")
 		return
 	}
 
-	ifId := GetLinkId(name)
+	ifId := GetLinkId(attrs.Name)
 	link := getLinkById(ifId)
 	//m.updateEtcd()
 	m.updateMap(link.link)

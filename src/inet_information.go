@@ -75,10 +75,9 @@ func getLinkList() ([]netlink.Link) {
 	return linkList
 }
 
-func NewLink(link netlink.Link) (*LinkWrapper) {
+func NewLink(link netlink.Link) (LinkWrapper) {
 	name := link.Attrs().Name
-	lw := new(LinkWrapper)
-
+	var lw LinkWrapper
 	lw.link = link
 	lw.Attrs.Id = GetLinkId(name)
 	lw.Attrs.HostId = GetHostId()
