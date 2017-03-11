@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 	"github.com/stretchr/testify/assert"
-	"fmt"
+	"syscall"
 )
 
 func TestGetLinkByName(t *testing.T) {
@@ -22,12 +22,12 @@ func TestGetBusInfo(t *testing.T) {
 
 func TestHandldLinkUpdate(t *testing.T) {
 	link, _ := GetLinkByName("eth0")
-	linkUpdate := LinkUpdate{"update", "1", "eth0", "set", "up", link}
-	handldLinkUpdate(linkUpdate)
+
+	handldLinkUpdate(LinkUpdate{"update", "1", "eth0", "set", "up", link})
 	updatedLink, _ := GetLinkByName("eth0")
-	//assert.Equal(t,updatedLink.Attrs().)
-	fmt.Print(updatedLink.Attrs().Flags, updatedLink.Attrs().RawFlags)
-	linkUpdate2 := LinkUpdate{"update", "1", "eth0", "set", "down", link}
-	handldLinkUpdate(linkUpdate2)
-	fmt.Print(updatedLink.Attrs().Flags, updatedLink.Attrs().RawFlags)
+	assert.Equal(t,true,(updatedLink.Attrs().RawFlags&syscall.IFF_UP) != 0)
+
+	handldLinkUpdate(LinkUpdate{"update", "1", "eth0", "set", "down", link})
+	updatedLink2, _ := GetLinkByName("eth0")
+	assert.Equal(t,true,(updatedLink2.Attrs().RawFlags&syscall.IFF_UP) != 0)
 }

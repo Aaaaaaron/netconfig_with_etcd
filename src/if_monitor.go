@@ -66,7 +66,7 @@ func handldLinkUpdate(update LinkUpdate) {
 				netlink.LinkSetUp(link)
 			}
 			if update.Argument == "down" {
-				netlink.LinkSetDown(update.link)
+				netlink.LinkSetDown(link)
 			}
 		}
 	//case:
