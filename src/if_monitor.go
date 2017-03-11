@@ -13,7 +13,7 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 }
 
-type UpdateChan struct {
+type Update struct {
 	LinkUpdateChan chan LinkUpdate
 	//AddrUpdateChan <-chan LinkUpdate
 	//RouteUpdateChan <-chan LinkUpdate
@@ -22,31 +22,28 @@ type UpdateChan struct {
 type LinkUpdate struct {
 	Action   string
 	LinkId   string
-	DevName  string
+	Object   string
 	Command  string
 	Argument string
 	link     netlink.Link
 }
 
 func main() {
-	GetLinkDetails()
-	link, _ := LinkMap.Get(GetLinkId("eth0"))
-	netlink := link.(LinkWrapper)
-	log.WithField("link",netlink.link).Debug("get link")
-	linkUpdate := LinkUpdate{"update", "1", "eth0", "set", "down", netlink.link}
-	linkUpdateChan := make(chan LinkUpdate)
-	updateChan := UpdateChan{linkUpdateChan}
+	link, _ := GetLinkByName("eth0")
+	updateChan := Update{make(chan LinkUpdate)}
 	go UpdateKernel(updateChan, time.NewTicker(10 * time.Second).C)
+
+	linkUpdate := LinkUpdate{"update", "1", "eth0", "set", "down", link}
 	updateChan.LinkUpdateChan <- linkUpdate
 	time.Sleep(100000 * time.Millisecond)
 }
 
-func UpdateKernel(updateChan UpdateChan, resyncC <-chan time.Time) {
+func UpdateKernel(update Update, resyncC <-chan time.Time) {
 	log.Info("Interface monitoring thread started.")
 
 	for {
 		select {
-		case linkUpdate := <-updateChan.LinkUpdateChan:
+		case linkUpdate := <-update.LinkUpdateChan:
 			log.WithField("update", linkUpdate).Debug("Link update")
 			handldLinkUpdate(linkUpdate)
 		case <-resyncC:

@@ -9,6 +9,7 @@ import (
 	"os"
 	"github.com/orcaman/concurrent-map"
 	"net"
+	"errors"
 )
 
 var LinkMap = cmap.New()
@@ -49,7 +50,7 @@ type LinkAttrs struct {
 //}
 
 func GetLinkDetails() cmap.ConcurrentMap {
-	linkList := getLinkList()
+	linkList := GetLinkList()
 
 	for _, link := range linkList {
 		linkWrapper := NewLink(link)
@@ -67,7 +68,7 @@ func GetLinkDetails() cmap.ConcurrentMap {
 	return LinkMap
 }
 
-func getLinkList() ([]netlink.Link) {
+func GetLinkList() ([]netlink.Link) {
 	linkList, err := netlink.LinkList()
 	if err != nil {
 		log.Fatalf("get link list from netlink failed: %s", err)
@@ -122,4 +123,15 @@ func GetEthBusInfo(ethName string) string {
 	}
 
 	return busInfo
+}
+
+func GetLinkByName(name string) (netlink.Link, error) {
+	links := GetLinkList()
+	for _, link := range links {
+		if link.Attrs().Name == name {
+			return link, nil
+		}
+	}
+	log.Fatal("can not find :", name)
+	return nil, errors.New("can not find link named:" + name)
 }
