@@ -29,5 +29,5 @@ func TestHandldLinkUpdate(t *testing.T) {
 
 	handldLinkUpdate(LinkUpdate{"update", "1", "eth0", "set", "down", link})
 	updatedLink2, _ := GetLinkByName("eth0")
-	assert.Equal(t,true,(updatedLink2.Attrs().RawFlags&syscall.IFF_UP) != 0)
+	assert.Equal(t,false,(updatedLink2.Attrs().RawFlags&syscall.IFF_UP) != 0)
 }

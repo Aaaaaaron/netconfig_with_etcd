@@ -5,6 +5,7 @@ import (
 	"os"
 	"github.com/vishvananda/netlink"
 	"time"
+	"errors"
 )
 
 func init() {
@@ -45,28 +46,37 @@ func UpdateKernel(update Update, resyncC <-chan time.Time) {
 		select {
 		case linkUpdate := <-update.LinkUpdateChan:
 			log.WithField("update", linkUpdate).Debug("Link update")
-			handldLinkUpdate(linkUpdate)
+			if err := handldLinkUpdate(linkUpdate); err != nil {
+				//handle fail.retry or alert
+			}
 		case <-resyncC:
 			log.Debug("Resync trigger")
-		//err := resync()
-		//if err != nil {
-		//	log.WithError(err).Fatal("Failed to read link states from netlink.")
-		//}
+			//err := resync()
+			//if err != nil {
+			//	log.WithError(err).Fatal("Failed to read link states from netlink.")
+			//}
 		}
 	}
 	log.Fatal("Failed to read events from Netlink.")
 }
 
-func handldLinkUpdate(update LinkUpdate) {
+func handldLinkUpdate(update LinkUpdate) error {
 	link := update.link
+	updateError := errors.New("update fail, " + update.Command + update.Argument + update.link.Attrs().Name)
 	switch update.Action {
 	case "update":
 		if update.Command == "set" {
 			if update.Argument == "up" {
-				netlink.LinkSetUp(link)
+				if err := netlink.LinkSetUp(link); err != nil {
+					log.Error("update fail", err)
+					return updateError
+				}
 			}
 			if update.Argument == "down" {
-				netlink.LinkSetDown(link)
+				if err := netlink.LinkSetDown(link); err != nil {
+					log.Error("update fail", err)
+					return updateError
+				}
 			}
 		}
 	//case:
@@ -74,27 +84,5 @@ func handldLinkUpdate(update LinkUpdate) {
 	//case:
 	//	return
 	}
+	return errors.New("no action found")
 }
-
-/*
-func notify(ch <-chan netlink.LinkUpdate) {
-	for {
-		select {
-		case update := <-ch:
-			fmt.Println(update.Link.Attrs().Name, update.Link.Attrs().HardwareAddr, update.IfInfomsg.Flags, syscall.IFF_UP)
-		case <-time.After(1 * time.Minute):
-			fmt.Println("timeout")
-		}
-	}
-}
-
-func MonitorLinks() {
-	ch := make(chan netlink.LinkUpdate)
-	done := make(chan struct{})
-	defer close(done)
-	if err := netlink.LinkSubscribe(ch, done); err != nil {
-		log.Fatal(err)
-	}
-	notify(ch)
-}
-*/
