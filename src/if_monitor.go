@@ -76,14 +76,6 @@ func handldLinkUpdate(update LinkUpdate) {
 	}
 }
 
-func getLinkById(ifId string) (LinkWrapper) {
-	result, ok := LinkMap.Get(ifId);
-	if !ok {
-		log.Fatal("can not retrieve value from key:", ifId) //todo how to do is better ?
-	}
-	return result.(LinkWrapper)
-}
-
 /*
 func notify(ch <-chan netlink.LinkUpdate) {
 	for {

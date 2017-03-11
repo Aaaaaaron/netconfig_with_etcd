@@ -135,3 +135,11 @@ func GetLinkByName(name string) (netlink.Link, error) {
 	}
 	return nil, errors.New("can not find link named:" + name)
 }
+
+func GetLinkById(ifId string) (LinkWrapper) {
+	result, ok := LinkMap.Get(ifId);
+	if !ok {
+		log.Fatal("can not retrieve value from key:", ifId) //todo how to do is better ?
+	}
+	return result.(LinkWrapper)
+}
