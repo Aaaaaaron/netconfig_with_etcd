@@ -39,9 +39,9 @@ func main() {
 	updateChan.LinkUpdateChan <- linkUpdate
 	time.Sleep(100000 * time.Millisecond)*/
 	link, _ := GetLinkByName("eth0")
-	handldLinkUpdate(LinkUpdate{"update", "1", "eth0", "set", "up", link})
+	handldLinkUpdate(&LinkUpdate{"update", "1", "eth0", "set", "up", link})
 	fmt.Println(link.Attrs().Flags,"	",link.Attrs().RawFlags)
-	handldLinkUpdate(LinkUpdate{"update", "1", "eth0", "set", "down", link})
+	handldLinkUpdate(&LinkUpdate{"update", "1", "eth0", "set", "down", link})
 	fmt.Println(link.Attrs().Flags,"	",link.Attrs().RawFlags)
 
 }
@@ -53,7 +53,7 @@ func UpdateKernel(update Update, resyncC <-chan time.Time) {
 		select {
 		case linkUpdate := <-update.LinkUpdateChan:
 			log.WithField("update", linkUpdate).Debug("Link update")
-			if err := handldLinkUpdate(linkUpdate); err != nil {
+			if err := handldLinkUpdate(&linkUpdate); err != nil {
 				//handle fail.retry or alert
 			}
 			// update linux success,update map and etcd
@@ -71,14 +71,14 @@ func UpdateKernel(update Update, resyncC <-chan time.Time) {
 	log.Fatal("Failed to read events from Netlink.")
 }
 
-func handldLinkUpdate(update LinkUpdate) error {
+func handldLinkUpdate(update *LinkUpdate) error {
 	link := update.link
 	updateError := errors.New("update fail, " + update.Command + update.Argument + update.link.Attrs().Name)
 	switch update.Action {
 	case "update":
 		if update.Command == "set" {
 			if update.Argument == "up" {
-				if err := netlink.LinkSetUp(link); err != nil {
+				if err := netlink.LinkSetUp(link); err != nil {// link will not be update,you should retrieve the link
 					log.Error("update fail", err)
 					return updateError
 				}
