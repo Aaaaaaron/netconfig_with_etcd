@@ -108,6 +108,7 @@ func GetLinkId(name string) string {
 	return ifId
 }
 
+//限制 ethName只能从GetLinkList()中的link中取,不能自己指定
 func GetEthBusInfo(ethName string) string {
 	if ethName == "lo" {
 		return "lo"
@@ -132,6 +133,5 @@ func GetLinkByName(name string) (netlink.Link, error) {
 			return link, nil
 		}
 	}
-	log.Fatal("can not find :", name)
 	return nil, errors.New("can not find link named:" + name)
 }
