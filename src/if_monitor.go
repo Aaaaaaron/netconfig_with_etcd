@@ -31,18 +31,18 @@ type LinkUpdate struct {
 }
 
 func main() {
-/*	link, _ := GetLinkByName("eth0")
-	updateChan := Update{make(chan LinkUpdate)}
-	go UpdateKernel(updateChan, time.NewTicker(10 * time.Second).C)
+	/*	link, _ := GetLinkByName("eth0")
+		updateChan := Update{make(chan LinkUpdate)}
+		go UpdateKernel(updateChan, time.NewTicker(10 * time.Second).C)
 
-	linkUpdate := LinkUpdate{"update", "1", "eth0", "set", "down", link}
-	updateChan.LinkUpdateChan <- linkUpdate
-	time.Sleep(100000 * time.Millisecond)*/
+		linkUpdate := LinkUpdate{"update", "1", "eth0", "set", "down", link}
+		updateChan.LinkUpdateChan <- linkUpdate
+		time.Sleep(100000 * time.Millisecond)*/
 	link, _ := GetLinkByName("eth0")
 	handldLinkUpdate(&LinkUpdate{"update", "1", "eth0", "set", "up", link})
-	fmt.Println(link.Attrs().Flags,"	",link.Attrs().RawFlags)
+	fmt.Println(link.Attrs().Flags, "	", link.Attrs().RawFlags)
 	handldLinkUpdate(&LinkUpdate{"update", "1", "eth0", "set", "down", link})
-	fmt.Println(link.Attrs().Flags,"	",link.Attrs().RawFlags)
+	fmt.Println(link.Attrs().Flags, "	", link.Attrs().RawFlags)
 
 }
 
@@ -56,8 +56,7 @@ func UpdateKernel(update Update, resyncC <-chan time.Time) {
 			if err := handldLinkUpdate(&linkUpdate); err != nil {
 				//handle fail.retry or alert
 			}
-			// update linux success,update map and etcd
-			//updateEtcd()
+		// update linux success,update map and etcd
 
 		//periodic resyncs
 		case <-resyncC:
@@ -71,17 +70,31 @@ func UpdateKernel(update Update, resyncC <-chan time.Time) {
 	log.Fatal("Failed to read events from Netlink.")
 }
 
+func UpdateMap(id string, updatedLink netlink.Link) {
+	//todo
+}
+
+//func UpdateEtcd(id string,updatedLink netlink.Link){
+//
+//}
+
+
 func handldLinkUpdate(update *LinkUpdate) error {
 	link := update.link
-	updateError := errors.New("update fail, " + update.Command + update.Argument + update.link.Attrs().Name)
+	updateError := errors.New("update fail, " + update.Command + update.Argument + link.Attrs().Name)
 	switch update.Action {
 	case "update":
 		if update.Command == "set" {
 			if update.Argument == "up" {
-				if err := netlink.LinkSetUp(link); err != nil {// link will not be update,you should retrieve the link
+				if err := netlink.LinkSetUp(link); err != nil { // link will not be update,you should retrieve the link by your self.should i do this here or return the updated link?
 					log.Error("update fail", err)
 					return updateError
 				}
+				link, _ = GetLinkByName(link.Attrs().Name)
+				log.WithFields(log.Fields{
+					"link name":link.Attrs().Name,
+					"link status":link.Attrs().Flags,
+				}).Debug("update linux success")
 			}
 			if update.Argument == "down" {
 				if err := netlink.LinkSetDown(link); err != nil {
