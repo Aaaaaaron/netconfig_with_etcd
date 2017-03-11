@@ -78,7 +78,6 @@ func UpdateMap(id string, updatedLink netlink.Link) {
 //
 //}
 
-
 func handldLinkUpdate(update *LinkUpdate) error {
 	link := update.link
 	updateError := errors.New("update fail, " + update.Command + update.Argument + link.Attrs().Name)
@@ -90,11 +89,6 @@ func handldLinkUpdate(update *LinkUpdate) error {
 					log.Error("update fail", err)
 					return updateError
 				}
-				link, _ = GetLinkByName(link.Attrs().Name)
-				log.WithFields(log.Fields{
-					"link name":link.Attrs().Name,
-					"link status":link.Attrs().Flags,
-				}).Debug("update linux success")
 			}
 			if update.Argument == "down" {
 				if err := netlink.LinkSetDown(link); err != nil {
@@ -103,10 +97,15 @@ func handldLinkUpdate(update *LinkUpdate) error {
 				}
 			}
 		}
-	//case:
-	//	return
-	//case:
-	//	return
+		link, _ = GetLinkByName(link.Attrs().Name)
+		log.WithFields(log.Fields{
+			"link name":   link.Attrs().Name,
+			"link status": string(link.Attrs().Flags),
+		}).Debug("set ", update.Argument, " linux success")
+	case "del":
+	//return
+	case "add":
+	//return
 	}
 	return errors.New("no action found")
 }
