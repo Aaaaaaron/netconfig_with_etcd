@@ -15,10 +15,8 @@ func init() {
 	log.SetLevel(log.DebugLevel)
 }
 
-type Update struct {
-	LinkUpdateChan chan LinkUpdate
-	//AddrUpdateChan <-chan LinkUpdate
-	//RouteUpdateChan <-chan LinkUpdate
+type Update interface {
+	handleUpdate() error
 }
 
 type LinkUpdate struct {
@@ -39,21 +37,21 @@ func main() {
 		updateChan.LinkUpdateChan <- linkUpdate
 		time.Sleep(100000 * time.Millisecond)*/
 	link, _ := GetLinkByName("eth0")
-	handldLinkUpdate(&LinkUpdate{"update", "1", "eth0", "set", "up", link})
+	LinkUpdate{"update", "1", "eth0", "set", "up", link}.handleUpdate()
 	fmt.Println(link.Attrs().Flags, "	", link.Attrs().RawFlags)
-	handldLinkUpdate(&LinkUpdate{"update", "1", "eth0", "set", "down", link})
+	LinkUpdate{"update", "1", "eth0", "set", "down", link}.handleUpdate()
 	fmt.Println(link.Attrs().Flags, "	", link.Attrs().RawFlags)
 
 }
 
-func UpdateKernel(update Update, resyncC <-chan time.Time) {
+func UpdateKernel(updateChan chan Update, resyncC <-chan time.Time) {
 	log.Info("Interface monitoring thread started.")
 
 	for {
 		select {
-		case linkUpdate := <-update.LinkUpdateChan:
-			log.WithField("update", linkUpdate).Debug("Link update")
-			if err := handldLinkUpdate(&linkUpdate); err != nil {
+		case update := <-updateChan:
+			//log.WithField("update", linkUpdate).Debug("Link update")
+			if err := update.handleUpdate(); err != nil {
 				//handle fail.retry or alert
 			}
 		// update linux success,update map and etcd
@@ -78,7 +76,7 @@ func UpdateMap(id string, updatedLink netlink.Link) {
 //
 //}
 
-func handldLinkUpdate(update *LinkUpdate) error {
+func (update *LinkUpdate) handleUpdate() error {
 	link := update.link
 	updateError := errors.New("update fail, " + update.Command + update.Argument + link.Attrs().Name)
 	switch update.Action {

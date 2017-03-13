@@ -23,11 +23,11 @@ func TestGetBusInfo(t *testing.T) {
 func TestHandldLinkUpdate(t *testing.T) {
 	link, _ := GetLinkByName("eth0")
 
-	handldLinkUpdate(&LinkUpdate{"update", "1", "eth0", "set", "up", link})
+	LinkUpdate{"update", "1", "eth0", "set", "up", link}.handleUpdate()
 	updatedLink, _ := GetLinkByName("eth0")
-	assert.Equal(t,true,(updatedLink.Attrs().RawFlags&syscall.IFF_UP) != 0)
+	assert.Equal(t, true, (updatedLink.Attrs().RawFlags & syscall.IFF_UP) != 0)
 
-	handldLinkUpdate(&LinkUpdate{"update", "1", "eth0", "set", "down", link})
+	LinkUpdate{"update", "1", "eth0", "set", "down", link}.handleUpdate()
 	updatedLink2, _ := GetLinkByName("eth0")
-	assert.Equal(t,false,(updatedLink2.Attrs().RawFlags&syscall.IFF_UP) != 0)
+	assert.Equal(t, false, (updatedLink2.Attrs().RawFlags & syscall.IFF_UP) != 0)
 }
