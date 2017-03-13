@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"
-	"time"
 )
 
 var (
@@ -83,7 +83,7 @@ func WatchWithRange(startKey, endKey string) {
 	}
 }
 
-func WatchWithPrefix() {
+func WatchWithPrefix(prefix string) {
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   endpoints,
 		DialTimeout: dialTimeout,
@@ -93,7 +93,7 @@ func WatchWithPrefix() {
 	}
 	defer cli.Close()
 
-	rch := cli.Watch(context.Background(), "waf", clientv3.WithPrefix())
+	rch := cli.Watch(context.Background(), prefix, clientv3.WithPrefix())
 	for wresp := range rch {
 		for _, ev := range wresp.Events {
 			fmt.Printf("%s %q : %q\n", ev.Type, ev.Kv.Key, ev.Kv.Value)
