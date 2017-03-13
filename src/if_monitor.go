@@ -31,10 +31,10 @@ type LinkUpdate struct {
 
 func main() {
 	link, _ := GetLinkByName("eth0")
-	LinkUpdate{"update", "1", "eth0", "set", "up", link}.handleUpdate()
-	fmt.Println(link.Attrs().Flags, "	", link.Attrs().RawFlags)
-	LinkUpdate{"update", "1", "eth0", "set", "down", link}.handleUpdate()
-	fmt.Println(link.Attrs().Flags, "	", link.Attrs().RawFlags)
+	updatedLink,_ :=LinkUpdate{"update", "1", "eth0", "set", "up", link}.handleUpdate()
+	fmt.Println(updatedLink.Attrs().Flags, "	", updatedLink.Attrs().RawFlags)
+	updatedLink2,_ :=LinkUpdate{"update", "1", "eth0", "set", "down", link}.handleUpdate()
+	fmt.Println(updatedLink2.Attrs().Flags, "	", updatedLink2.Attrs().RawFlags)
 }
 
 func UpdateKernel(updateChan chan Update, resyncC <-chan time.Time) {
