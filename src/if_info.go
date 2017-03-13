@@ -1,15 +1,14 @@
 package main
 
 import (
-	"github.com/vishvananda/netlink"
-	"github.com/safchain/ethtool"
-	log "github.com/Sirupsen/logrus"
-	//"math/rand"
-	//"strconv"
-	"os"
-	"github.com/orcaman/concurrent-map"
-	"net"
 	"errors"
+	"net"
+	"os"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/orcaman/concurrent-map"
+	"github.com/safchain/ethtool"
+	"github.com/vishvananda/netlink"
 )
 
 var LinkMap = cmap.New()
@@ -21,10 +20,10 @@ func init() {
 }
 
 //warpper netlink's Link,and Attrs add some fields
-type LinkWrapper struct {
-	link  netlink.Link
-	Attrs LinkAttrs
-}
+//type LinkWrapper struct {
+//	link  netlink.Link
+//	Attrs LinkAttrs
+//}
 
 type LinkAttrs struct {
 	Id           string // equals HostId +"_" +BusInfo
@@ -43,11 +42,6 @@ type LinkAttrs struct {
 	MasterIndex  int
 	BypassId     string
 }
-
-//func main() {
-//	GetLinkDetails()
-//	//fmt.Print(LinkMap)
-//}
 
 func GetLinkDetails() cmap.ConcurrentMap {
 	linkList := GetLinkList()
@@ -76,36 +70,34 @@ func GetLinkList() ([]netlink.Link) {
 	return linkList
 }
 
-func NewLink(link netlink.Link) (LinkWrapper) {
+func NewLink(link netlink.Link) (LinkAttrs) {
 	name := link.Attrs().Name
-	var lw LinkWrapper
-	lw.link = link
-	lw.Attrs.Id = GetLinkId(name)
-	lw.Attrs.HostId = GetHostId()
-	lw.Attrs.BusInfo = GetEthBusInfo(name)
-	lw.Attrs.Name = name
-	lw.Attrs.DisplayName = name //need to retrieve from etcd if etcd has, or equals name
-	lw.Attrs.HardwareAddr = link.Attrs().HardwareAddr
-	lw.Attrs.MTU = link.Attrs().MTU
-	lw.Attrs.TxQLen = link.Attrs().TxQLen
-	lw.Attrs.Statistics = link.Attrs().Statistics
-	lw.Attrs.ParentIndex = link.Attrs().ParentIndex
-	lw.Attrs.MasterIndex = link.Attrs().MasterIndex
-	//lw.Attrs.SysStat =
-	//lw.Attrs.AdminStat = linkAttrs.OperState //need to retrieve from etcd if etcd has, or equals SysStat
-	//lw.Attrs.ExecStat=
-	lw.Attrs.BypassId = ""
-	return lw
+	var la LinkAttrs
+	la.Id = GetLinkId(name)
+	la.HostId = GetHostId()
+	la.BusInfo = GetEthBusInfo(name)
+	la.Name = name
+	la.DisplayName = getDisplayName() //need to retrieve from etcd if etcd has, or equals name
+	la.HardwareAddr = link.Attrs().HardwareAddr
+	la.MTU = link.Attrs().MTU
+	la.TxQLen = link.Attrs().TxQLen
+	la.Statistics = link.Attrs().Statistics
+	la.ParentIndex = link.Attrs().ParentIndex
+	la.MasterIndex = link.Attrs().MasterIndex
+	//la.SysStat =
+	//la.AdminStat = linkAttrs.OperState //need to retrieve from etcd if etcd has, or equals SysStat
+	//la.ExecStat=
+	la.BypassId = ""
+	return la
+}
+func GetLinkId(name string) string {
+	ifId := GetHostId() + "_" + GetEthBusInfo(name)
+	return ifId
 }
 
 func GetHostId() string {
 	//return strconv.Itoa(rand.Int())
 	return "1"
-}
-
-func GetLinkId(name string) string {
-	ifId := GetHostId() + "_" + GetEthBusInfo(name)
-	return ifId
 }
 
 //限制 ethName只能从GetLinkList()中的link中取,不能自己指定
@@ -115,7 +107,7 @@ func GetEthBusInfo(ethName string) string {
 	}
 	ethHandle, err := ethtool.NewEthtool()
 	if err != nil {
-		log.Fatal("can not get ethtoll", err)
+		log.Fatal("can not get ethtool", err)
 	}
 
 	busInfo, err := ethHandle.BusInfo(ethName)
@@ -124,6 +116,10 @@ func GetEthBusInfo(ethName string) string {
 	}
 
 	return busInfo
+}
+
+func getDisplayName() string {
+
 }
 
 func GetLinkByName(name string) (netlink.Link, error) {
@@ -136,10 +132,10 @@ func GetLinkByName(name string) (netlink.Link, error) {
 	return nil, errors.New("can not find link named:" + name)
 }
 
-func GetLinkById(ifId string) (LinkWrapper) {
+func GetLinkById(ifId string) (LinkAttrs) {
 	result, ok := LinkMap.Get(ifId);
 	if !ok {
 		log.Fatal("can not retrieve value from key:", ifId) //todo how to do is better ?
 	}
-	return result.(LinkWrapper)
+	return result.(LinkAttrs)
 }

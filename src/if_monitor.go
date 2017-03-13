@@ -1,12 +1,12 @@
 package main
 
 import (
-	log "github.com/Sirupsen/logrus"
-	"os"
-	"github.com/vishvananda/netlink"
-	"time"
 	"errors"
-	"fmt"
+	"os"
+	"time"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/vishvananda/netlink"
 )
 
 func init() {
@@ -29,14 +29,6 @@ type LinkUpdate struct {
 	link     netlink.Link
 }
 
-func main() {
-	link, _ := GetLinkByName("eth0")
-	updatedLink,_ :=LinkUpdate{"update", "1", "eth0", "set", "up", link}.handleUpdate()
-	fmt.Println(updatedLink.Attrs().Flags, "	", updatedLink.Attrs().RawFlags)
-	updatedLink2,_ :=LinkUpdate{"update", "1", "eth0", "set", "down", link}.handleUpdate()
-	fmt.Println(updatedLink2.Attrs().Flags, "	", updatedLink2.Attrs().RawFlags)
-}
-
 func UpdateKernel(updateChan chan Update, resyncC <-chan time.Time) {
 	log.Info("Interface monitoring thread started.")
 
@@ -49,7 +41,6 @@ func UpdateKernel(updateChan chan Update, resyncC <-chan time.Time) {
 				//todo handle fail.retry or alert
 			}
 			UpdateEtcd(update.getLinkId(), link)
-		//todo update linux success,update map and etcd
 
 		case <-resyncC: //periodic resyncs
 			log.Debug("Resync trigger")
@@ -81,7 +72,7 @@ func (update LinkUpdate) handleUpdate() (netlink.Link, error) {
 	switch update.Action {
 	case "update":
 		if update.Command == "set" && update.Argument == "up" {
-			if err := netlink.LinkSetUp(link); err != nil { // link will not be update,you should retrieve the link by your self.should i do this here or return the updated link?
+			if err := netlink.LinkSetUp(link); err != nil {
 				log.Error("update fail", err)
 				return nil, updateError
 			}
@@ -92,12 +83,12 @@ func (update LinkUpdate) handleUpdate() (netlink.Link, error) {
 				return nil, updateError
 			}
 		}
-		link, _ = GetLinkByName(link.Attrs().Name)
+		updatedLink, _ := GetLinkByName(link.Attrs().Name) // link will not be update,you should retrieve the link by your self.should i do this here or return the updated link?
 		log.WithFields(log.Fields{
-			"link name":   link.Attrs().Name,
-			"link status": link.Attrs().Flags,
+			"link name":   updatedLink.Attrs().Name,
+			"link status": updatedLink.Attrs().Flags,
 		}).Debug("set ", update.Argument, " linux success")
-		return link, nil
+		return updatedLink, nil
 	case "del":
 	//return
 	case "add":
