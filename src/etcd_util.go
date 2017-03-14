@@ -8,7 +8,8 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"
-	"github.com/coreos/etcd/mvcc/mvccpb"
+	_ "github.com/coreos/etcd/mvcc/mvccpb"
+	"encoding/json"
 )
 
 var (
@@ -16,11 +17,6 @@ var (
 	dialTimeout    = 50 * time.Second
 	requestTimeout = 10000 * time.Millisecond
 )
-
-func main() {
-	//EtcdPut("action","aciont")
-
-}
 
 func EtcdPut(key, value string) {
 	cli, err := clientv3.New(clientv3.Config{
@@ -49,7 +45,8 @@ func EtcdPut(key, value string) {
 	}
 }
 
-func EtcdGet(key string) []*mvccpb.KeyValue {
+func EtcdGet(key string) LinkAttrs {
+	var link LinkAttrs
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   endpoints,
 		DialTimeout: dialTimeout,
@@ -66,7 +63,13 @@ func EtcdGet(key string) []*mvccpb.KeyValue {
 		log.Fatal(err)
 	}
 
-	return resp.Kvs
+	for _, ev := range resp.Kvs {
+		if err := json.Unmarshal(ev.Value, &link); err != nil {
+			log.Fatalf("JSON unmarshaling failed: %s", err)
+		}
+	}
+
+	return link
 }
 
 func WatchWithRange(startKey, endKey string) {

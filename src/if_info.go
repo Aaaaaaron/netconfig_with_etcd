@@ -1,16 +1,17 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"net"
 	"os"
+	"syscall"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/orcaman/concurrent-map"
 	"github.com/safchain/ethtool"
 	"github.com/vishvananda/netlink"
-	"syscall"
-	"encoding/json"
+	"fmt"
 )
 
 var LinkMap = cmap.New()
@@ -18,7 +19,7 @@ var LinkMap = cmap.New()
 func init() {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetOutput(os.Stdout)
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.InfoLevel)
 }
 
 //warpper netlink's Link,and Attrs add some fields
@@ -46,27 +47,35 @@ type LinkAttrs struct {
 }
 
 func main() {
-	GetLinkDetails()
+	//linkList := GetLinkList()
+	//for _, link := range linkList {
+	//	id, value := GetLinkDetails(link)
+	//	putEtcd(id, value)
+	//}
+	fmt.Print(EtcdGet("1_0000:00:03.0"))
+
 }
 
-func GetLinkDetails() cmap.ConcurrentMap {
-	linkList := GetLinkList()
+func putEtcd(id, value string) {
+	EtcdPut(id, value)
+}
 
-	for _, link := range linkList {
-		la := NewLink(link)
-		data, err := json.MarshalIndent(la, "", "\t")
-		if err != nil {
-			log.Fatalf("JSON marshaling failed: %s", err)
-		}
-		//fmt.Println(string(data))
-		log.WithFields(log.Fields{
-			"kye":        la.Id,
-			"link value": la,
-		}).Debug("插入etcd的link的value值信息")
-		EtcdPut(la.Id, string(data))
-		LinkMap.Set(la.Id, link)
+func putMap(id, value string) {
+	LinkMap.Set(id, value)
+}
+
+func GetLinkDetails(link netlink.Link) (string, string) {
+	la := NewLink(link)
+	data, err := json.MarshalIndent(la, "", "\t")
+	if err != nil {
+		log.Fatalf("JSON marshaling failed: %s", err)
 	}
-	return LinkMap
+	//fmt.Println(string(data))
+	log.WithFields(log.Fields{
+		"kye":        la.Id,
+		"link value": la,
+	}).Debug("插入etcd的link的value值信息")
+	return la.Id, string(data)
 }
 
 func GetLinkList() ([]netlink.Link) {
@@ -84,7 +93,7 @@ func NewLink(link netlink.Link) (LinkAttrs) {
 	la.HostId = GetHostId()
 	la.BusInfo = GetEthBusInfo(name)
 	la.Name = name
-	la.DisplayName = getDisplayName(name) //need to retrieve from etcd if etcd has, or equals name
+	//la.DisplayName = getDisplayName(name) //need to retrieve from etcd if etcd has, or equals name
 	la.HardwareAddr = link.Attrs().HardwareAddr
 	la.MTU = link.Attrs().MTU
 	la.TxQLen = link.Attrs().TxQLen
@@ -112,13 +121,16 @@ func getAdminStat(link netlink.Link) string {
 	return ""
 }
 
-func getDisplayName(name string) string {
-	kvs := EtcdGet(name)
-	for _, ev := range kvs {
-		return string(ev.Value)
-	}
-	return name
-}
+//func getDisplayName(link netlink.Link) string {
+//	name := link.Attrs().Name
+//	id := GetLinkId(name)
+//	kvs := EtcdGet(id)
+//	for _, ev := range kvs {
+//		ev.Value
+//		return string(ev.Value)
+//	}
+//	return name
+//}
 
 func GetLinkId(name string) string {
 	ifId := GetHostId() + "_" + GetEthBusInfo(name)
