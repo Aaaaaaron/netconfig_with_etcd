@@ -8,6 +8,7 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"
+	"github.com/coreos/etcd/mvcc/mvccpb"
 )
 
 var (
@@ -16,7 +17,12 @@ var (
 	requestTimeout = 10000 * time.Millisecond
 )
 
-func put(key, value string) {
+func main() {
+	//EtcdPut("action","aciont")
+
+}
+
+func EtcdPut(key, value string) {
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   endpoints,
 		DialTimeout: dialTimeout,
@@ -43,7 +49,7 @@ func put(key, value string) {
 	}
 }
 
-func get(key string) {
+func EtcdGet(key string) []*mvccpb.KeyValue {
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   endpoints,
 		DialTimeout: dialTimeout,
@@ -59,9 +65,8 @@ func get(key string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, ev := range resp.Kvs {
-		fmt.Printf("%s : %s\n", ev.Key, ev.Value)
-	}
+
+	return resp.Kvs
 }
 
 func WatchWithRange(startKey, endKey string) {

@@ -9,6 +9,8 @@ import (
 	"github.com/orcaman/concurrent-map"
 	"github.com/safchain/ethtool"
 	"github.com/vishvananda/netlink"
+	"syscall"
+	"encoding/json"
 )
 
 var LinkMap = cmap.New()
@@ -35,29 +37,34 @@ type LinkAttrs struct {
 	MTU          int
 	TxQLen       int
 	Statistics   *netlink.LinkStatistics
-	AdminStat    netlink.LinkOperState //uint8
-	ExecStat     netlink.LinkOperState
-	SysStat      netlink.LinkOperState
+	AdminStat    string //uint8
+	ExecStat     string
+	SysStat      string
 	ParentIndex  int
 	MasterIndex  int
 	BypassId     string
+}
+
+func main() {
+	GetLinkDetails()
 }
 
 func GetLinkDetails() cmap.ConcurrentMap {
 	linkList := GetLinkList()
 
 	for _, link := range linkList {
-		link := NewLink(link)
-		//data, err := json.MarshalIndent(linkWrapper.Attrs, "", "\t")
-		//if err != nil {
-		//	log.Fatalf("JSON marshaling failed: %s", err)
-		//}
+		la := NewLink(link)
+		data, err := json.MarshalIndent(la, "", "\t")
+		if err != nil {
+			log.Fatalf("JSON marshaling failed: %s", err)
+		}
 		//fmt.Println(string(data))
-		LinkMap.Set(link.Id, link)
 		log.WithFields(log.Fields{
-			"kye":        link.Id,
-			"link value": link,
+			"kye":        la.Id,
+			"link value": la,
 		}).Debug("插入etcd的link的value值信息")
+		EtcdPut(la.Id, string(data))
+		LinkMap.Set(la.Id, link)
 	}
 	return LinkMap
 }
@@ -77,30 +84,53 @@ func NewLink(link netlink.Link) (LinkAttrs) {
 	la.HostId = GetHostId()
 	la.BusInfo = GetEthBusInfo(name)
 	la.Name = name
-	la.DisplayName = getDisplayName() //need to retrieve from etcd if etcd has, or equals name
+	la.DisplayName = getDisplayName(name) //need to retrieve from etcd if etcd has, or equals name
 	la.HardwareAddr = link.Attrs().HardwareAddr
 	la.MTU = link.Attrs().MTU
 	la.TxQLen = link.Attrs().TxQLen
 	la.Statistics = link.Attrs().Statistics
 	la.ParentIndex = link.Attrs().ParentIndex
 	la.MasterIndex = link.Attrs().MasterIndex
-	//la.SysStat =
-	//la.AdminStat = linkAttrs.OperState //need to retrieve from etcd if etcd has, or equals SysStat
+	la.SysStat = getSysStat(link)
+	la.AdminStat = getSysStat(link) //need to retrieve from etcd if etcd has, or equals SysStat
+	//la.AdminStat = getAdminStat(link) //need to retrieve from etcd if etcd has, or equals SysStat
 	//la.ExecStat=
 	la.BypassId = ""
 	return la
 }
+
+func getSysStat(link netlink.Link) string {
+	//现阶段只取一个interface是否开启
+	if (link.Attrs().RawFlags & syscall.IFF_UP) != 0 {
+		return "up"
+	}
+	return "down"
+}
+
+func getAdminStat(link netlink.Link) string {
+	//kvs := EtcdGet(name)
+	return ""
+}
+
+func getDisplayName(name string) string {
+	kvs := EtcdGet(name)
+	for _, ev := range kvs {
+		return string(ev.Value)
+	}
+	return name
+}
+
 func GetLinkId(name string) string {
 	ifId := GetHostId() + "_" + GetEthBusInfo(name)
 	return ifId
 }
 
+//限制 ethName只能从GetLinkList()中的link中取,不能自己指定
 func GetHostId() string {
 	//return strconv.Itoa(rand.Int())
 	return "1"
 }
 
-//限制 ethName只能从GetLinkList()中的link中取,不能自己指定
 func GetEthBusInfo(ethName string) string {
 	if ethName == "lo" {
 		return "lo"
@@ -116,10 +146,6 @@ func GetEthBusInfo(ethName string) string {
 	}
 
 	return busInfo
-}
-
-func getDisplayName() string {
-
 }
 
 func GetLinkByName(name string) (netlink.Link, error) {
