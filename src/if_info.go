@@ -47,13 +47,19 @@ type LinkAttrs struct {
 }
 
 func main() {
-	//linkList := GetLinkList()
-	//for _, link := range linkList {
-	//	id, value := GetLinkDetails(link)
-	//	putEtcd(id, value)
-	//}
-	fmt.Print(EtcdGet("1_0000:00:03.0"))
+	linkList := GetLinkList()
+	m := make(map[string]LinkAttrs)
+	for _, link := range linkList {
+		id, value := GetLinkDetails(link)
+		m[id] = value
+	}
+	data, err := json.MarshalIndent(m, "", "\t")
+	if err != nil {
+		log.Fatalf("JSON marshaling failed: %s", err)
+	}
+	putEtcd("linklist", string(data))
 
+	fmt.Print(EtcdGet("linklist"))
 }
 
 func putEtcd(id, value string) {
@@ -64,18 +70,13 @@ func putMap(id, value string) {
 	LinkMap.Set(id, value)
 }
 
-func GetLinkDetails(link netlink.Link) (string, string) {
+func GetLinkDetails(link netlink.Link) (string, LinkAttrs) {
 	la := NewLink(link)
-	data, err := json.MarshalIndent(la, "", "\t")
-	if err != nil {
-		log.Fatalf("JSON marshaling failed: %s", err)
-	}
-	//fmt.Println(string(data))
 	log.WithFields(log.Fields{
 		"kye":        la.Id,
 		"link value": la,
 	}).Debug("插入etcd的link的value值信息")
-	return la.Id, string(data)
+	return la.Id, la
 }
 
 func GetLinkList() ([]netlink.Link) {
@@ -89,11 +90,11 @@ func GetLinkList() ([]netlink.Link) {
 func NewLink(link netlink.Link) (LinkAttrs) {
 	name := link.Attrs().Name
 	var la LinkAttrs
-	la.Id = GetLinkId(name)
+	la.Id = GetLinkId(link)
 	la.HostId = GetHostId()
 	la.BusInfo = GetEthBusInfo(name)
 	la.Name = name
-	//la.DisplayName = getDisplayName(name) //need to retrieve from etcd if etcd has, or equals name
+	la.DisplayName = getDisplayName(link) //need to retrieve from etcd if etcd has, or equals name
 	la.HardwareAddr = link.Attrs().HardwareAddr
 	la.MTU = link.Attrs().MTU
 	la.TxQLen = link.Attrs().TxQLen
@@ -101,10 +102,8 @@ func NewLink(link netlink.Link) (LinkAttrs) {
 	la.ParentIndex = link.Attrs().ParentIndex
 	la.MasterIndex = link.Attrs().MasterIndex
 	la.SysStat = getSysStat(link)
-	la.AdminStat = getSysStat(link) //need to retrieve from etcd if etcd has, or equals SysStat
-	//la.AdminStat = getAdminStat(link) //need to retrieve from etcd if etcd has, or equals SysStat
-	//la.ExecStat=
-	la.BypassId = ""
+	la.AdminStat = getAdminStat(link) //need to retrieve from etcd if etcd has, or equals SysStat
+	la.ExecStat = getExecStat(link)
 	return la
 }
 
@@ -121,18 +120,22 @@ func getAdminStat(link netlink.Link) string {
 	return ""
 }
 
-//func getDisplayName(link netlink.Link) string {
-//	name := link.Attrs().Name
-//	id := GetLinkId(name)
-//	kvs := EtcdGet(id)
-//	for _, ev := range kvs {
-//		ev.Value
-//		return string(ev.Value)
-//	}
-//	return name
-//}
+func getExecStat(link netlink.Link) string {
+	return ""
+}
 
-func GetLinkId(name string) string {
+func getDisplayName(link netlink.Link) string {
+	id := GetLinkId(link)
+	la := EtcdGet(id)
+	if la.DisplayName != "" {
+		return la.DisplayName
+	}
+
+	return link.Attrs().Name
+}
+
+func GetLinkId(link netlink.Link) string {
+	name := link.Attrs().Name
 	ifId := GetHostId() + "_" + GetEthBusInfo(name)
 	return ifId
 }
