@@ -10,8 +10,15 @@ import (
 	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"
 	_ "github.com/coreos/etcd/mvcc/mvccpb"
 	"encoding/json"
+	"github.com/orcaman/concurrent-map"
 )
 
+/*
+    // Retrieve item from map.
+    if tmp, ok := map.Get("foo"); ok {
+        bar := tmp.(string)
+    }
+*/
 var (
 	endpoints      = []string{"localhost:2379"}
 	dialTimeout    = 50 * time.Second
@@ -46,7 +53,8 @@ func EtcdPut(key, value string) {
 }
 
 func EtcdGet(key string) LinkAttrs {
-	var m map[string]LinkAttrs
+	//var m map[string]LinkAttrs
+	var m cmap.ConcurrentMap
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   endpoints,
 		DialTimeout: dialTimeout,
@@ -69,7 +77,8 @@ func EtcdGet(key string) LinkAttrs {
 		}
 	}
 
-	return link
+	tmp, _ := m.Get(key)
+	return tmp.(LinkAttrs)
 }
 
 func WatchWithRange(startKey, endKey string) {
