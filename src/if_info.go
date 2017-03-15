@@ -48,13 +48,12 @@ type LinkAttrs struct {
 
 func main() {
 	linkList := GetLinkList()
-	//m := make(map[string]LinkAttrs)
+	m := make(map[string]LinkAttrs)
 	for _, link := range linkList {
 		id, value := GetLinkDetails(link)
-		//m[id] = value
-		putMap(id, value)
+		m[id] = value
 	}
-	data, err := json.MarshalIndent(LinkMap, "", "\t")
+	data, err := json.MarshalIndent(m, "", "\t")
 	if err != nil {
 		log.Fatalf("JSON marshaling failed: %s", err)
 	}
