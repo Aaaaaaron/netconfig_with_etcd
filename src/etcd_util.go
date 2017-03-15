@@ -46,7 +46,7 @@ func EtcdPut(key, value string) {
 }
 
 func EtcdGet(key string) LinkAttrs {
-	var link LinkAttrs
+	var m map[string]LinkAttrs
 	cli, err := clientv3.New(clientv3.Config{
 		Endpoints:   endpoints,
 		DialTimeout: dialTimeout,
@@ -64,7 +64,7 @@ func EtcdGet(key string) LinkAttrs {
 	}
 
 	for _, ev := range resp.Kvs {
-		if err := json.Unmarshal(ev.Value, &link); err != nil {
+		if err := json.Unmarshal(ev.Value, &m); err != nil {
 			log.Fatalf("JSON unmarshaling failed: %s", err)
 		}
 	}

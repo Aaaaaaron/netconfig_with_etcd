@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"syscall"
@@ -11,7 +12,6 @@ import (
 	"github.com/orcaman/concurrent-map"
 	"github.com/safchain/ethtool"
 	"github.com/vishvananda/netlink"
-	"fmt"
 )
 
 var LinkMap = cmap.New()
@@ -48,12 +48,13 @@ type LinkAttrs struct {
 
 func main() {
 	linkList := GetLinkList()
-	m := make(map[string]LinkAttrs)
+	//m := make(map[string]LinkAttrs)
 	for _, link := range linkList {
 		id, value := GetLinkDetails(link)
-		m[id] = value
+		//m[id] = value
+		putMap(id, value)
 	}
-	data, err := json.MarshalIndent(m, "", "\t")
+	data, err := json.MarshalIndent(LinkMap, "", "\t")
 	if err != nil {
 		log.Fatalf("JSON marshaling failed: %s", err)
 	}
@@ -66,7 +67,7 @@ func putEtcd(id, value string) {
 	EtcdPut(id, value)
 }
 
-func putMap(id, value string) {
+func putMap(id string, value LinkAttrs) {
 	LinkMap.Set(id, value)
 }
 
