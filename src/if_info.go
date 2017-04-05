@@ -4,10 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
 	"os"
-	"syscall"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/orcaman/concurrent-map"
 	"github.com/safchain/ethtool"
@@ -22,38 +19,29 @@ func init() {
 	log.SetLevel(log.InfoLevel)
 }
 
-//warpper netlink's Link,and Attrs add some fields
-//type LinkWrapper struct {
-//	link  netlink.Link
-//	Attrs LinkAttrs
-//}
+type Links struct {
+	Stat string
+	Link map[string]LinkWrapper
+}
 
-type LinkAttrs struct {
-	Id           string // equals HostId +"_" +BusInfo
-	HostId       string
-	BusInfo      string
-	Name         string
-	DisplayName  string // not equals alias
-	HardwareAddr net.HardwareAddr
-	MTU          int
-	TxQLen       int
-	Statistics   *netlink.LinkStatistics
-	AdminStat    string //uint8
-	ExecStat     string
-	SysStat      string
-	ParentIndex  int
-	MasterIndex  int
-	BypassId     string
+type LinkWrapper struct {
+	Id      string // equals HostId +"_" +BusInfo
+	HostId  string
+	BusInfo string
+	//DisplayName string //equals alias
+	BypassId string
+	link     netlink.Link
 }
 
 func main() {
 	linkList := GetLinkList()
-	m := make(map[string]LinkAttrs)
+	linkMap := make(map[string]LinkWrapper)
 	for _, link := range linkList {
 		id, value := GetLinkDetails(link)
-		m[id] = value
+		linkMap[id] = value
 	}
-	data, err := json.MarshalIndent(m, "", "\t")
+
+	data, err := json.MarshalIndent(Links{"done", linkMap}, "", "\t")
 	if err != nil {
 		log.Fatalf("JSON marshaling failed: %s", err)
 	}
@@ -66,12 +54,12 @@ func putEtcd(id, value string) {
 	EtcdPut(id, value)
 }
 
-func putMap(id string, value LinkAttrs) {
+func putMap(id string, value LinkWrapper) {
 	LinkMap.Set(id, value)
 }
 
-func GetLinkDetails(link netlink.Link) (string, LinkAttrs) {
-	la := NewLink(link)
+func GetLinkDetails(link netlink.Link) (string, LinkWrapper) {
+	la := NewLinkWrapper(link)
 	log.WithFields(log.Fields{
 		"kye":        la.Id,
 		"link value": la,
@@ -87,55 +75,17 @@ func GetLinkList() ([]netlink.Link) {
 	return linkList
 }
 
-func NewLink(link netlink.Link) (LinkAttrs) {
-	name := link.Attrs().Name
-	var la LinkAttrs
-	la.Id = GetLinkId(link)
+func NewLinkWrapper(link netlink.Link) (LinkWrapper) {
+	var la LinkWrapper
+	la.Id = GetLinkId(link.Attrs().Name)
 	la.HostId = GetHostId()
-	la.BusInfo = GetEthBusInfo(name)
-	la.Name = name
-	la.DisplayName = getDisplayName(link) //need to retrieve from etcd if etcd has, or equals name
-	la.HardwareAddr = link.Attrs().HardwareAddr
-	la.MTU = link.Attrs().MTU
-	la.TxQLen = link.Attrs().TxQLen
-	la.Statistics = link.Attrs().Statistics
-	la.ParentIndex = link.Attrs().ParentIndex
-	la.MasterIndex = link.Attrs().MasterIndex
-	la.SysStat = getSysStat(link)
-	la.AdminStat = getAdminStat(link) //need to retrieve from etcd if etcd has, or equals SysStat
-	la.ExecStat = getExecStat(link)
+	la.BusInfo = GetEthBusInfo(link.Attrs().Name)
+	la.BypassId = ""
+	la.link = link
 	return la
 }
 
-func getSysStat(link netlink.Link) string {
-	//现阶段只取一个interface是否开启
-	if (link.Attrs().RawFlags & syscall.IFF_UP) != 0 {
-		return "up"
-	}
-	return "down"
-}
-
-func getAdminStat(link netlink.Link) string {
-	//kvs := EtcdGet(name)
-	return ""
-}
-
-func getExecStat(link netlink.Link) string {
-	return ""
-}
-
-func getDisplayName(link netlink.Link) string {
-	id := GetLinkId(link)
-	la := EtcdGet(id)
-	if la.DisplayName != "" {
-		return la.DisplayName
-	}
-
-	return link.Attrs().Name
-}
-
-func GetLinkId(link netlink.Link) string {
-	name := link.Attrs().Name
+func GetLinkId(name string) string {
 	ifId := GetHostId() + "_" + GetEthBusInfo(name)
 	return ifId
 }
@@ -157,7 +107,8 @@ func GetEthBusInfo(ethName string) string {
 
 	busInfo, err := ethHandle.BusInfo(ethName)
 	if err != nil {
-		busInfo = ""
+		//busInfo = ""
+		log.Fatal("can not retrieve " + ethName + "'s bus info")
 	}
 
 	return busInfo
@@ -173,10 +124,10 @@ func GetLinkByName(name string) (netlink.Link, error) {
 	return nil, errors.New("can not find link named:" + name)
 }
 
-func GetLinkById(ifId string) (LinkAttrs) {
+func GetLinkById(ifId string) (LinkWrapper) {
 	result, ok := LinkMap.Get(ifId);
 	if !ok {
 		log.Fatal("can not retrieve value from key:", ifId) //todo how to do is better ?
 	}
-	return result.(LinkAttrs)
+	return result.(LinkWrapper)
 }
